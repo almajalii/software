@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:meditrack/classes/MyTextField.dart';
-import 'package:meditrack/screens/auth/Start.dart';
+import 'package:meditrack/widgets/MyTextField.dart';
+import 'package:meditrack/screens/auth/start_screen.dart';
 import 'package:meditrack/style/colors.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -33,7 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     user = _auth.currentUser;
     if (user == null) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (context) => Start(),));
+      Navigator.of(context).push(MaterialPageRoute(builder: (context) => StartScreen(),));
     } else {
       loadUserData();
     }
@@ -101,7 +101,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (shouldLogout == true) {
       await _auth.signOut();
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const Start()),
+        MaterialPageRoute(builder: (context) => const StartScreen()),
         (Route<dynamic> route) => false,
       );
     }
