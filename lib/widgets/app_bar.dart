@@ -1,8 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:meditrack/screens/settings.dart';
+import 'package:meditrack/screens/main/settings.dart';
 
 class MyAppBar {
   static PreferredSizeWidget build(BuildContext context, VoidCallback onNotificationPressed) {
@@ -24,7 +23,7 @@ class MyAppBar {
         icon: Icon(Icons.settings),
       ),
       actions: [
-        StreamBuilder(
+        StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('users')
               .doc(user?.uid)
@@ -32,20 +31,21 @@ class MyAppBar {
               .snapshots(),
           builder: (context, snapshot) {
             bool hasExpired = false;
-            final dateFormat = DateFormat('dd-MM-yyyy');
             final now = DateTime.now();
 
             if (snapshot.hasData) {
               for (var doc in snapshot.data!.docs) {
-                final expiryStr = doc['expiryDate'];
-                try {
-                  final expiry = dateFormat.parseStrict(expiryStr);
-                  if (expiry.isBefore(now)) {
-                    hasExpired = true;
-                    break;
+                final data = doc.data() as Map<String, dynamic>;
+                if (data.containsKey('dateExpired')) {
+                  try {
+                    final expiry = (data['dateExpired'] as Timestamp).toDate();
+                    if (expiry.isBefore(now)) {
+                      hasExpired = true;
+                      break;
+                    }
+                  } catch (_) {
+                    // Ignore invalid timestamps
                   }
-                } catch (_) {
-                  // Ignore invalid dates
                 }
               }
             }
