@@ -51,14 +51,14 @@ class _AddDosageState extends State<AddDosage> {
       'dosage': MedDosage.text.trim(),
       'frequency': MedFrequency.text.trim(),
       'times':
-          selectedTimes
-              .map((t) => {'time': t, 'taken': false, 'takenDate': null})
-              .toList(),
+      selectedTimes
+          .map((t) => {'time': t, 'taken': false, 'takenDate': null})
+          .toList(),
       'startDate': Timestamp.fromDate(DateTime.parse(StartDateController.text)),
       'endDate':
-          hasEndDate
-              ? Timestamp.fromDate(DateTime.parse(EndDateController.text))
-              : null,
+      hasEndDate
+          ? Timestamp.fromDate(DateTime.parse(EndDateController.text))
+          : null,
       'addedAt': Timestamp.fromDate(DateTime.now()),
       'medicineId': selectedMedicine!.id,
     };
@@ -81,7 +81,10 @@ class _AddDosageState extends State<AddDosage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: isDarkMode ? Color(0xFF121212) : Colors.white,
       appBar: MyAppBar.build(context, () {}),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -107,17 +110,25 @@ class _AddDosageState extends State<AddDosage> {
                         return SizedBox(
                           width: 300,
                           child: DropdownButtonFormField<Medicine>(
-
                             value: selectedMedicine,
+                            dropdownColor: isDarkMode ? Color(0xFF2C2C2C) : Colors.white,
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
                             items:
-                                state.medicines
-                                    .map(
-                                      (med) => DropdownMenuItem(
-                                        value: med,
-                                        child: Text(med.name),
-                                      ),
-                                    )
-                                    .toList(),
+                            state.medicines
+                                .map(
+                                  (med) => DropdownMenuItem(
+                                value: med,
+                                child: Text(
+                                  med.name,
+                                  style: TextStyle(
+                                    color: isDarkMode ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                              ),
+                            )
+                                .toList(),
                             onChanged: (val) {
                               setState(() => selectedMedicine = val);
 
@@ -134,11 +145,31 @@ class _AddDosageState extends State<AddDosage> {
                             validator: (value) => value == null ? "*" : null,
                             decoration: InputDecoration(
                               labelText: "Select Medicine",
+                              labelStyle: TextStyle(
+                                color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              fillColor: AppColors.lightGray,
+                              fillColor: isDarkMode ? Color(0xFF2C2C2C) : AppColors.lightGray,
                               filled: true,
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: isDarkMode ? Color(0xFF3C3C3C) : Color(0xFFC8D1DC),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: AppColors.primary,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            icon: Icon(
+                              Icons.arrow_drop_down,
+                              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                             ),
                           ),
                         );
@@ -176,7 +207,7 @@ class _AddDosageState extends State<AddDosage> {
                       labelText: "Start Date",
                       onDateChanged: (date) {
                         StartDateController.text =
-                            "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+                        "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
                       },
                     ),
                   ),
@@ -188,8 +219,14 @@ class _AddDosageState extends State<AddDosage> {
                       Checkbox(
                         value: hasEndDate,
                         onChanged: (val) => setState(() => hasEndDate = val!),
+                        activeColor: AppColors.primary,
                       ),
-                      const Text("Has End Date?"),
+                      Text(
+                        "Has End Date?",
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.grey[300] : Colors.black87,
+                        ),
+                      ),
                     ],
                   ),
                   if (hasEndDate)
@@ -200,29 +237,36 @@ class _AddDosageState extends State<AddDosage> {
                         labelText: "End Date",
                         onDateChanged: (date) {
                           EndDateController.text =
-                              "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+                          "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
                         },
                       ),
                     ),
                   const SizedBox(height: 20),
                   // Time Picker
-                  SizedBox(width: 150, child: TimePicker(context)),
+                  SizedBox(width: 150, child: TimePicker(context, isDarkMode)),
                   const SizedBox(height: 10),
                   // Show selected times
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children:
-                        selectedTimes
-                            .map(
-                              (t) => Chip(
-                                label: Text(t),
-                                onDeleted:
-                                    () =>
-                                        setState(() => selectedTimes.remove(t)),
-                              ),
-                            )
-                            .toList(),
+                    selectedTimes
+                        .map(
+                          (t) => Chip(
+                        label: Text(
+                          t,
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        backgroundColor: isDarkMode ? Color(0xFF3C3C3C) : Colors.grey[300],
+                        deleteIconColor: isDarkMode ? Colors.grey[400] : Colors.black54,
+                        onDeleted:
+                            () =>
+                            setState(() => selectedTimes.remove(t)),
+                      ),
+                    )
+                        .toList(),
                   ),
                   const SizedBox(height: 20),
                   // Submit Button
@@ -244,7 +288,7 @@ class _AddDosageState extends State<AddDosage> {
     );
   }
 
-  ElevatedButton TimePicker(BuildContext context) {
+  ElevatedButton TimePicker(BuildContext context, bool isDarkMode) {
     return ElevatedButton(
       onPressed: () async {
         final pickedTime = await showTimePicker(
@@ -258,6 +302,10 @@ class _AddDosageState extends State<AddDosage> {
           }
         }
       },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isDarkMode ? Color(0xFF3C3C3C) : AppColors.primary,
+        foregroundColor: isDarkMode ? Colors.grey[300] : AppColors.darkBlue,
+      ),
       child: const Text("+ Time"),
     );
   }

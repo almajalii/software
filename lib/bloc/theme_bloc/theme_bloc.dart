@@ -1,4 +1,4 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:meditrack/style/colors.dart';
@@ -6,7 +6,7 @@ import 'package:meditrack/style/colors.dart';
 part 'theme_event.dart';
 part 'theme_state.dart';
 
-class ThemeBloc extends Bloc<ThemeEvent, ThemeState> {
+class ThemeBloc extends HydratedBloc<ThemeEvent, ThemeState> {
   ThemeBloc() : super(ThemeState(themeData: _lightTheme, isDarkMode: false)) {
     on<ToggleThemeEvent>(_onToggleTheme);
     on<SetThemeEvent>(_onSetTheme);
@@ -24,6 +24,28 @@ class ThemeBloc extends Bloc<ThemeEvent, ThemeState> {
       themeData: event.isDarkMode ? _darkTheme : _lightTheme,
       isDarkMode: event.isDarkMode,
     ));
+  }
+
+  @override
+  ThemeState? fromJson(Map<String, dynamic> json) {
+    try {
+      final isDarkMode = json['isDarkMode'] as bool? ?? false;
+      return ThemeState(
+        themeData: isDarkMode ? _darkTheme : _lightTheme,
+        isDarkMode: isDarkMode,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Map<String, dynamic>? toJson(ThemeState state) {
+    try {
+      return {'isDarkMode': state.isDarkMode};
+    } catch (_) {
+      return null;
+    }
   }
 
   static final ThemeData _lightTheme = ThemeData(

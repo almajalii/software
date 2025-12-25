@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:meditrack/style/colors.dart'; // your colors
+import 'package:meditrack/style/colors.dart';
 
 class ExpiryDatePicker extends StatefulWidget {
   final TextEditingController controller;
@@ -37,14 +37,36 @@ class _ExpiryDatePickerState extends State<ExpiryDatePicker> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return TextFormField(
       controller: widget.controller,
       readOnly: true,
+      style: TextStyle(
+        color: isDarkMode ? Colors.white : Colors.black,
+      ),
       decoration: InputDecoration(
         labelText: widget.labelText,
-        fillColor: AppColors.lightGray,
+        labelStyle: TextStyle(
+          color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+        ),
+        fillColor: isDarkMode ? Color(0xFF2C2C2C) : AppColors.lightGray,
+        filled: true,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: isDarkMode ? Color(0xFF3C3C3C) : Color(0xFFC8D1DC),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: AppColors.primary,
+            width: 2,
+          ),
         ),
       ),
       onTap: () async {
@@ -65,10 +87,6 @@ class _ExpiryDatePickerState extends State<ExpiryDatePicker> {
           });
         }
       },
-      // validator: (value) {
-      //   if (value == null || value.isEmpty) return '*';
-      //   return null;
-      // },
     );
   }
 }

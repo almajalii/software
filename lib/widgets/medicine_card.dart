@@ -119,54 +119,237 @@ class _MedicineCardState extends State<MedicineCard> {
             color: isDarkMode ? Colors.grey[200] : Colors.black87,
           ),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Name: ${widget.med.name}',
-              style: TextStyle(
-                color: isDarkMode ? Colors.grey[300] : Colors.black87,
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Name: ${widget.med.name}',
+                style: TextStyle(
+                  color: isDarkMode ? Colors.grey[300] : Colors.black87,
+                ),
               ),
-            ),
-            Text(
-              'Type: ${widget.med.type}',
-              style: TextStyle(
-                color: isDarkMode ? Colors.grey[300] : Colors.black87,
+              Text(
+                'Type: ${widget.med.type}',
+                style: TextStyle(
+                  color: isDarkMode ? Colors.grey[300] : Colors.black87,
+                ),
               ),
-            ),
-            Text(
-              'Category: ${widget.med.category}',
-              style: TextStyle(
-                color: isDarkMode ? Colors.grey[300] : Colors.black87,
+              Text(
+                'Category: ${widget.med.category}',
+                style: TextStyle(
+                  color: isDarkMode ? Colors.grey[300] : Colors.black87,
+                ),
               ),
-            ),
-            Text(
-              'Quantity: ${widget.med.quantity}',
-              style: TextStyle(
-                color: isDarkMode ? Colors.grey[300] : Colors.black87,
+              Text(
+                'Quantity: ${widget.med.quantity}',
+                style: TextStyle(
+                  color: isDarkMode ? Colors.grey[300] : Colors.black87,
+                ),
               ),
-            ),
-            Text(
-              'Notes: ${widget.med.notes}',
-              style: TextStyle(
-                color: isDarkMode ? Colors.grey[300] : Colors.black87,
+              Text(
+                'Notes: ${widget.med.notes}',
+                style: TextStyle(
+                  color: isDarkMode ? Colors.grey[300] : Colors.black87,
+                ),
               ),
-            ),
-            Text(
-              'Expiry Date: ${widget.med.dateExpired.day}-${widget.med.dateExpired.month}-${widget.med.dateExpired.year}',
-              style: TextStyle(
-                color: isDarkMode ? Colors.grey[300] : Colors.black87,
+              Text(
+                'Expiry Date: ${widget.med.dateExpired.day}-${widget.med.dateExpired.month}-${widget.med.dateExpired.year}',
+                style: TextStyle(
+                  color: isDarkMode ? Colors.grey[300] : Colors.black87,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
+          TextButton(
+            child: const Text('View Alternatives'),
+            onPressed: () {
+              Navigator.of(context).pop();
+              _showAlternativesDialog(context, isDarkMode);
+            },
+          ),
           TextButton(
             child: const Text('Close'),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showAlternativesDialog(BuildContext context, bool isDarkMode) {
+    showDialog(
+      context: context,
+      builder: (_) => BlocBuilder<MedicineBloc, MedicineState>(
+        builder: (context, state) {
+          List<Medicine> alternatives = [];
+
+          if (state is MedicineLoadedState) {
+            // Find medicines with same category, excluding current medicine
+            alternatives = state.medicines.where((med) =>
+            med.id != widget.med.id &&
+                med.category == widget.med.category
+            ).toList();
+          }
+
+          return AlertDialog(
+            backgroundColor: isDarkMode ? Color(0xFF2C2C2C) : AppColors.white,
+            title: Row(
+              children: [
+                Icon(Icons.medical_services, color: AppColors.primary, size: 24),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Alternative Medicines',
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.grey[200] : Colors.black87,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            content: Container(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.primary.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                            color: AppColors.primary,
+                            size: 20
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Category: ${widget.med.category}',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.grey[300] : Colors.black87,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Similar medicines in your inventory:',
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+                      fontSize: 13,
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  alternatives.isEmpty
+                      ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.inbox_outlined,
+                            size: 48,
+                            color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'No alternatives found',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'No other medicines in this category',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDarkMode ? Colors.grey[600] : Colors.grey[500],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                      : Container(
+                    constraints: BoxConstraints(maxHeight: 300),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: alternatives.length,
+                      itemBuilder: (context, index) {
+                        final alt = alternatives[index];
+                        return Card(
+                          color: isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
+                          margin: EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            leading: Icon(
+                              FontAwesomeIcons.pills,
+                              color: AppColors.teal,
+                              size: 20,
+                            ),
+                            title: Text(
+                              alt.name,
+                              style: TextStyle(
+                                color: isDarkMode ? Colors.grey[200] : Colors.black87,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${alt.type} • Qty: ${alt.quantity}',
+                              style: TextStyle(
+                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                fontSize: 12,
+                              ),
+                            ),
+                            trailing: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: alt.quantity > 0
+                                    ? AppColors.success.withOpacity(0.2)
+                                    : AppColors.error.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                alt.quantity > 0 ? 'Available' : 'Out of stock',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: alt.quantity > 0
+                                      ? AppColors.success
+                                      : AppColors.error,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                child: const Text('Close'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

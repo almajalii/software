@@ -41,7 +41,7 @@ class _AddMedicineState extends State<AddMedicine> {
   void submitMedicine() {
     if (!formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Medicine added successfully!')),
+        const SnackBar(content: Text('Please fill all required fields')),
       );
       return;
     }
@@ -57,10 +57,10 @@ class _AddMedicineState extends State<AddMedicine> {
       quantity: int.tryParse(Quantity.text.trim()) ?? 0,
       dateAdded: DateTime.now(),
       dateExpired:
-          ExpDate.text.isNotEmpty
-              ? DateTime.tryParse(ExpDate.text.split('-').reversed.join('-')) ??
-                  DateTime.now()
-              : DateTime.now().add(const Duration(days: 365)),
+      ExpDate.text.isNotEmpty
+          ? DateTime.tryParse(ExpDate.text.split('-').reversed.join('-')) ??
+          DateTime.now()
+          : DateTime.now().add(const Duration(days: 365)),
     );
     //ADDS EVENT -> ADDMEDICINE
     context.read<MedicineBloc>().add(
@@ -76,7 +76,10 @@ class _AddMedicineState extends State<AddMedicine> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: isDarkMode ? Color(0xFF121212) : Colors.white,
       appBar: MyAppBar.build(context, () => ExpiryReminder()),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -133,13 +136,33 @@ class _AddMedicineState extends State<AddMedicine> {
                     width: 300,
                     child: TextFormField(
                       controller: Quantity,
-
-                      keyboardType: TextInputType.number, // Numeric keyboard
-                     // Only digits
+                      keyboardType: TextInputType.number,
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
                       decoration: InputDecoration(
                         labelText: "Quantity",
-                        border: OutlineInputBorder(),
-                        fillColor: AppColors.lightGray,
+                        labelStyle: TextStyle(
+                          color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        fillColor: isDarkMode ? Color(0xFF2C2C2C) : AppColors.lightGray,
+                        filled: true,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: isDarkMode ? Color(0xFF3C3C3C) : Color(0xFFC8D1DC),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: AppColors.primary,
+                            width: 2,
+                          ),
+                        ),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) return "*";
@@ -158,7 +181,7 @@ class _AddMedicineState extends State<AddMedicine> {
                       labelText: "Expiry Date",
                       onDateChanged: (date) {
                         ExpDate.text =
-                            "${date.day.toString().padLeft(2, '0')}-"
+                        "${date.day.toString().padLeft(2, '0')}-"
                             "${date.month.toString().padLeft(2, '0')}-"
                             "${date.year}";
                       },

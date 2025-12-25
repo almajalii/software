@@ -146,10 +146,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Icon(Icons.person, color: AppColors.primary, size: 80),
-            const SizedBox(height: 20),
-
-            // Theme Toggle Card
+            // Theme Toggle Card at the top
             Card(
               elevation: 2,
               margin: const EdgeInsets.symmetric(vertical: 8),
@@ -184,6 +181,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
 
+            const SizedBox(height: 30),
+
+            // Profile Icon and Section
+            Icon(Icons.person, color: AppColors.primary, size: 80),
+            const SizedBox(height: 10),
+            Text(
+              'Edit Profile',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 20),
 
             _buildThemedTextField(
@@ -195,10 +204,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildThemedTextField(context, 'Phone Number', phoneController),
             const SizedBox(height: 5),
             Text(
-              'Further Information: (optional)',
-              style: Theme.of(context).textTheme.titleMedium,
+              'Additional Information (optional)',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 10),
             _buildThemedTextField(context, 'Allergies', allergiesController),
             _buildThemedTextField(
               context,

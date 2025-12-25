@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:meditrack/screens/auth/login_screen.dart';
+import 'package:meditrack/screens/auth/signup_screen.dart';
 import 'package:meditrack/screens/main/navigation_main.dart';
 
 class StartScreen extends StatefulWidget {
@@ -79,8 +80,11 @@ class _StartScreenState extends State<StartScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     if (isLoading) {
-      return const Scaffold(
+      return Scaffold(
+        backgroundColor: isDarkMode ? Color(0xFF121212) : Colors.white,
         body: Center(child: CircularProgressIndicator()),
       );
     }
@@ -88,7 +92,7 @@ class _StartScreenState extends State<StartScreen> {
     if (isLoggedIn) return const NavigationMain();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDarkMode ? Color(0xFF121212) : Colors.white,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -100,15 +104,21 @@ class _StartScreenState extends State<StartScreen> {
                 const SizedBox(height: 40),
                 Text(
                   "Welcome to MediTrack",
-                  style: Theme.of(context).textTheme.titleLarge!.copyWith(fontSize: 26),
+                  style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                    fontSize: 26,
+                    color: isDarkMode ? Colors.grey[200] : Colors.black87,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 60),
                 SizedBox(
                   width: 300,
+                  height: 50,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      );
                     },
                     child: const Text("LOGIN"),
                   ),
@@ -116,8 +126,20 @@ class _StartScreenState extends State<StartScreen> {
                 const SizedBox(height: 15),
                 SizedBox(
                   width: 300,
+                  height: 50,
                   child: OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const SignupScreen()),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isDarkMode ? Colors.grey[200] : Colors.black87,
+                      side: BorderSide(
+                        color: isDarkMode ? Colors.grey[600]! : Colors.grey[400]!,
+                        width: 2,
+                      ),
+                    ),
                     child: const Text("SIGNUP"),
                   ),
                 ),
