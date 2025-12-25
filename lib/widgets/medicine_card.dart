@@ -115,8 +115,7 @@ class _MedicineCardState extends State<MedicineCard> {
 
     return showDialog(
       context: context,
-      builder:
-          (_) => AlertDialog(
+      builder: (_) => AlertDialog(
         backgroundColor: isDarkMode ? Color(0xFF2C2C2C) : AppColors.white,
         title: Text(
           'Medicine Details',
@@ -124,87 +123,78 @@ class _MedicineCardState extends State<MedicineCard> {
             color: isDarkMode ? Colors.grey[200] : Colors.black87,
           ),
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Display image if available (from LOCAL storage)
-              if (widget.med.imageUrl != null && widget.med.imageUrl!.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.file(
-                      File(widget.med.imageUrl!),
+        content: SizedBox(
+          width: double.maxFinite, // ADDED: Give the dialog content a max width
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Display image if available (from LOCAL storage)
+                if (widget.med.imageUrl != null && widget.med.imageUrl!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: SizedBox(
+                      // FIXED: Use SizedBox instead of Container with constraints
                       height: 200,
                       width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 200,
-                          color: isDarkMode ? Color(0xFF1E1E1E) : Colors.grey[200],
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.broken_image,
-                                  size: 48,
-                                  color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          File(widget.med.imageUrl!),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            print('❌ Error loading image: $error');
+                            return Container(
+                              height: 200,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: isDarkMode ? Color(0xFF1E1E1E) : Colors.grey[200],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.broken_image,
+                                      size: 48,
+                                      color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Image not found',
+                                      style: TextStyle(
+                                        color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Image not found',
-                                  style: TextStyle(
-                                    color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     ),
                   ),
+                _buildDetailRow('Name', widget.med.name, isDarkMode),
+                SizedBox(height: 8),
+                _buildDetailRow('Type', widget.med.type, isDarkMode),
+                SizedBox(height: 8),
+                _buildDetailRow('Category', widget.med.category, isDarkMode),
+                SizedBox(height: 8),
+                _buildDetailRow('Quantity', widget.med.quantity.toString(), isDarkMode),
+                SizedBox(height: 8),
+                _buildDetailRow('Notes', widget.med.notes, isDarkMode),
+                SizedBox(height: 8),
+                _buildDetailRow(
+                  'Expiry Date',
+                  '${widget.med.dateExpired.day}-${widget.med.dateExpired.month}-${widget.med.dateExpired.year}',
+                  isDarkMode,
                 ),
-              Text(
-                'Name: ${widget.med.name}',
-                style: TextStyle(
-                  color: isDarkMode ? Colors.grey[300] : Colors.black87,
-                ),
-              ),
-              Text(
-                'Type: ${widget.med.type}',
-                style: TextStyle(
-                  color: isDarkMode ? Colors.grey[300] : Colors.black87,
-                ),
-              ),
-              Text(
-                'Category: ${widget.med.category}',
-                style: TextStyle(
-                  color: isDarkMode ? Colors.grey[300] : Colors.black87,
-                ),
-              ),
-              Text(
-                'Quantity: ${widget.med.quantity}',
-                style: TextStyle(
-                  color: isDarkMode ? Colors.grey[300] : Colors.black87,
-                ),
-              ),
-              Text(
-                'Notes: ${widget.med.notes}',
-                style: TextStyle(
-                  color: isDarkMode ? Colors.grey[300] : Colors.black87,
-                ),
-              ),
-              Text(
-                'Expiry Date: ${widget.med.dateExpired.day}-${widget.med.dateExpired.month}-${widget.med.dateExpired.year}',
-                style: TextStyle(
-                  color: isDarkMode ? Colors.grey[300] : Colors.black87,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [
@@ -224,6 +214,33 @@ class _MedicineCardState extends State<MedicineCard> {
     );
   }
 
+// Helper method to build detail rows
+  Widget _buildDetailRow(String label, String value, bool isDarkMode) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 100,
+          child: Text(
+            '$label:',
+            style: TextStyle(
+              color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              color: isDarkMode ? Colors.grey[300] : Colors.black87,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   void _showAlternativesDialog(BuildContext context, bool isDarkMode) {
     showDialog(
       context: context,
@@ -233,10 +250,9 @@ class _MedicineCardState extends State<MedicineCard> {
 
           if (state is MedicineLoadedState) {
             // Find medicines with same category, excluding current medicine
-            alternatives = state.medicines.where((med) =>
-            med.id != widget.med.id &&
-                med.category == widget.med.category
-            ).toList();
+            alternatives = state.medicines
+                .where((med) => med.id != widget.med.id && med.category == widget.med.category)
+                .toList();
           }
 
           return AlertDialog(
@@ -273,10 +289,7 @@ class _MedicineCardState extends State<MedicineCard> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.info_outline,
-                            color: AppColors.primary,
-                            size: 20
-                        ),
+                        Icon(Icons.info_outline, color: AppColors.primary, size: 20),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -371,9 +384,7 @@ class _MedicineCardState extends State<MedicineCard> {
                                 alt.quantity > 0 ? 'Available' : 'Out of stock',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: alt.quantity > 0
-                                      ? AppColors.success
-                                      : AppColors.error,
+                                  color: alt.quantity > 0 ? AppColors.success : AppColors.error,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -410,8 +421,7 @@ class _MedicineCardState extends State<MedicineCard> {
       ) {
     return showDialog(
       context: context,
-      builder:
-          (_) => AlertDialog(
+      builder: (_) => AlertDialog(
         backgroundColor: isDarkMode ? Color(0xFF2C2C2C) : AppColors.white,
         title: Text(
           'Edit Medicine',
@@ -471,8 +481,9 @@ class _MedicineCardState extends State<MedicineCard> {
                 notes: notesController.text.trim(),
                 quantity: int.tryParse(quantityController.text) ?? 0,
                 dateAdded: widget.med.dateAdded,
-                dateExpired:
-                DateTime.tryParse(expiryController.text.split('-').reversed.join('-')) ?? widget.med.dateExpired,
+                dateExpired: DateTime.tryParse(expiryController.text.split('-').reversed.join('-')) ??
+                    widget.med.dateExpired,
+                imageUrl: widget.med.imageUrl, // IMPORTANT: Preserve the image URL
               );
               //add event-> update
               context.read<MedicineBloc>().add(UpdateMedicineEvent(widget.med.userId, widget.med.id, updatedMedicine));

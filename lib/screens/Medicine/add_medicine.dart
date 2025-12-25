@@ -12,10 +12,12 @@ import 'package:meditrack/widgets/Time.dart';
 import 'package:meditrack/style/colors.dart';
 import 'package:meditrack/services/image.dart';
 
+import '../../bloc/image/image_bloc.dart';
+import '../../bloc/image/image_event.dart';
+import '../../bloc/image/image_state.dart';
 import '../../repository/medicine_constants.dart';
 import '../../widgets/MyDropDownField.dart';
 
-//User Input → Form Validation → Bloc Event → Repository → Firestore → UI Update
 class AddMedicine extends StatefulWidget {
   const AddMedicine({super.key});
 
@@ -36,7 +38,6 @@ class _AddMedicineState extends State<AddMedicine> {
 
   final User? userCredential = FirebaseAuth.instance.currentUser;
 
-  File? _selectedImage;
   bool _isUploadingImage = false;
 
   String? medicineValidator(value) {
@@ -44,40 +45,74 @@ class _AddMedicineState extends State<AddMedicine> {
     return null;
   }
 
-  void submitMedicine() async {
+  void submitMedicine(File? selectedImage) async {
+    print('\n🚀 Submit button pressed');
+
     if (!formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields')),
-      );
+      print('❌ Form validation failed');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please fill all required fields')),
+        );
+      }
       return;
     }
+
+    print('✅ Form validation passed');
+    print('📝 Medicine name: ${MedName.text.trim()}');
+    print('🖼️ Selected image: ${selectedImage?.path ?? "No image"}');
 
     setState(() => _isUploadingImage = true);
 
     // Save image locally if selected
     String? imagePath;
-    if (_selectedImage != null) {
-      print('📸 Saving image locally...');
-      imagePath = await _imageService.saveImageLocally(
-        imageFile: _selectedImage!,
-        userId: userCredential?.uid ?? '',
-        medicineName: MedName.text.trim(),
-      );
+    if (selectedImage != null) {
+      print('\n📸 Image selected, starting save process...');
+      print('Source image path: ${selectedImage.path}');
 
-      if (imagePath != null) {
-        print('✅ Image saved locally: $imagePath');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image saved successfully!')),
+      final bool imageExists = await selectedImage.exists();
+      print('Image file exists: $imageExists');
+
+      if (imageExists) {
+        imagePath = await _imageService.saveImageLocally(
+          imageFile: selectedImage,
+          userId: userCredential?.uid ?? '',
+          medicineName: MedName.text.trim(),
         );
+
+        if (imagePath != null) {
+          print('✅✅✅ Image saved successfully: $imagePath');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Image saved successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          print('❌❌❌ Image save returned null');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Image save failed. Saving without image.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
       } else {
-        print('❌ Image save failed');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image save failed. Saving without image.')),
-        );
+        print('❌ Image file does not exist at source path!');
       }
+    } else {
+      print('ℹ️ No image selected to save');
     }
 
     setState(() => _isUploadingImage = false);
+
+    print('\n📦 Creating medicine object...');
+    print('Medicine name: ${MedName.text.trim()}');
+    print('Image path to save: $imagePath');
 
     final newMedicine = Medicine(
       id: '',
@@ -88,23 +123,67 @@ class _AddMedicineState extends State<AddMedicine> {
       notes: MedNotes.text.trim(),
       quantity: int.tryParse(Quantity.text.trim()) ?? 0,
       dateAdded: DateTime.now(),
-      dateExpired:
-      ExpDate.text.isNotEmpty
+      dateExpired: ExpDate.text.isNotEmpty
           ? DateTime.tryParse(ExpDate.text.split('-').reversed.join('-')) ??
           DateTime.now()
           : DateTime.now().add(const Duration(days: 365)),
-      imageUrl: imagePath, // Save LOCAL path instead of Firebase URL
+      imageUrl: imagePath,
     );
 
-    context.read<MedicineBloc>().add(
-      AddMedicineEvent(userCredential?.uid ?? '', newMedicine),
-    );
+    print('🎯 Medicine object created with imageUrl: ${newMedicine.imageUrl}');
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Medicine added successfully!')),
-    );
+    if (mounted) {
+      print('📤 Dispatching AddMedicineEvent to BLoC...');
+      context.read<MedicineBloc>().add(
+        AddMedicineEvent(userCredential?.uid ?? '', newMedicine),
+      );
 
-    Navigator.of(context).pop();
+      // Clear image from BLoC
+      context.read<ImageBloc>().add(const RemoveImageEvent());
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Medicine added successfully!')),
+      );
+
+      print('🔙 Popping navigation...\n');
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _pickImage() async {
+    print('\n📷 Image picker button pressed');
+
+    final file = await _imageService.showImageSourceDialog(context);
+
+    print('📷 Received file from dialog: ${file?.path ?? "null"}');
+
+    if (file != null) {
+      print('✅ Image received from picker: ${file.path}');
+      final exists = await file.exists();
+      print('File exists check: $exists');
+
+      if (exists) {
+        // Update BLoC with the image
+        print('🖼️ BLoC: Setting image - ${file.path}');
+        context.read<ImageBloc>().add(SetImageEvent(file));
+        print('✅ Image sent to BLoC');
+      } else {
+        print('❌ Received file does not exist!');
+      }
+    } else {
+      print('❌ No image received from picker');
+    }
+  }
+
+  @override
+  void dispose() {
+    MedName.dispose();
+    MedNotes.dispose();
+    MedType.dispose();
+    MedCategory.dispose();
+    ExpDate.dispose();
+    Quantity.dispose();
+    super.dispose();
   }
 
   @override
@@ -121,7 +200,7 @@ class _AddMedicineState extends State<AddMedicine> {
             child: Center(
               child: Column(
                 children: [
-                  // Image Picker Section
+                  // Image Picker Section - Using BLoC
                   SizedBox(
                     width: 300,
                     child: Card(
@@ -138,66 +217,95 @@ class _AddMedicineState extends State<AddMedicine> {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            if (_selectedImage != null)
-                              Stack(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Image.file(
-                                      _selectedImage!,
-                                      height: 150,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                  Positioned(
-                                    top: 8,
-                                    right: 8,
-                                    child: IconButton(
-                                      icon: const Icon(Icons.close, color: Colors.white),
-                                      style: IconButton.styleFrom(
-                                        backgroundColor: Colors.red,
+
+                            // BlocBuilder to display image
+                            BlocBuilder<ImageBloc, ImageState>(
+                              builder: (context, imageState) {
+                                if (imageState is ImageSelected) {
+                                  return Stack(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Image.file(
+                                          imageState.image,
+                                          height: 150,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            print('❌ Error displaying image: $error');
+                                            return Container(
+                                              height: 150,
+                                              color: Colors.grey,
+                                              child: Center(
+                                                child: Icon(Icons.error, color: Colors.red),
+                                              ),
+                                            );
+                                          },
+                                        ),
                                       ),
-                                      onPressed: () {
-                                        setState(() {
-                                          _selectedImage = null;
-                                          print('🗑️ Image removed from preview');
-                                        });
-                                      },
+                                      Positioned(
+                                        top: 8,
+                                        right: 8,
+                                        child: IconButton(
+                                          icon: const Icon(Icons.close, color: Colors.white),
+                                          style: IconButton.styleFrom(
+                                            backgroundColor: Colors.red,
+                                          ),
+                                          onPressed: () {
+                                            print('🗑️ Removing image from BLoC');
+                                            context.read<ImageBloc>().add(const RemoveImageEvent());
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }
+
+                                // Default: Show button to add photo
+                                return OutlinedButton.icon(
+                                  onPressed: _pickImage,
+                                  icon: const Icon(Icons.add_a_photo),
+                                  label: const Text('Add Photo'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.primary,
+                                    side: BorderSide(color: AppColors.primary),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            // Show filename when image selected
+                            BlocBuilder<ImageBloc, ImageState>(
+                              builder: (context, imageState) {
+                                if (imageState is ImageSelected) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Column(
+                                      children: [
+                                        Text(
+                                          'Image selected ✓',
+                                          style: TextStyle(
+                                            color: Colors.green,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          imageState.image.path.split('/').last,
+                                          style: TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 10,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ],
-                              )
-                            else
-                              OutlinedButton.icon(
-                                onPressed: () async {
-                                  print('📷 Opening image picker...');
-                                  final file = await _imageService.showImageSourceDialog(context);
-                                  if (file != null) {
-                                    print('✅ Image selected: ${file.path}');
-                                    setState(() => _selectedImage = file);
-                                  } else {
-                                    print('❌ No image selected');
-                                  }
-                                },
-                                icon: const Icon(Icons.add_a_photo),
-                                label: const Text('Add Photo'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.primary,
-                                  side: BorderSide(color: AppColors.primary),
-                                ),
-                              ),
-                            if (_selectedImage != null)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8.0),
-                                child: Text(
-                                  'Image selected ✓',
-                                  style: TextStyle(
-                                    color: Colors.green,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
+                                  );
+                                }
+                                return SizedBox.shrink();
+                              },
+                            ),
                           ],
                         ),
                       ),
@@ -226,10 +334,10 @@ class _AddMedicineState extends State<AddMedicine> {
                       value: MedType.text,
                       items: medicineTypes,
                       validator: medicineValidator,
-                      onChanged: (value) => setState(() => MedType.text = value!),
+                      onChanged: (value) => MedType.text = value!,
                     ),
                   ),
-
+                  const SizedBox(height: 20),
                   SizedBox(
                     width: 300,
                     child: MyDropdownField(
@@ -237,10 +345,9 @@ class _AddMedicineState extends State<AddMedicine> {
                       value: MedCategory.text,
                       items: medicineCategories,
                       validator: medicineValidator,
-                      onChanged: (value) => setState(() => MedCategory.text = value!),
+                      onChanged: (value) => MedCategory.text = value!,
                     ),
                   ),
-
                   const SizedBox(height: 20),
                   SizedBox(
                     width: 300,
@@ -295,40 +402,52 @@ class _AddMedicineState extends State<AddMedicine> {
                       controller: ExpDate,
                       labelText: "Expiry Date",
                       onDateChanged: (date) {
-                        ExpDate.text =
-                        "${date.day.toString().padLeft(2, '0')}-"
+                        ExpDate.text = "${date.day.toString().padLeft(2, '0')}-"
                             "${date.month.toString().padLeft(2, '0')}-"
                             "${date.year}";
                       },
                     ),
                   ),
                   const SizedBox(height: 20),
-                  SizedBox(
-                    height: 50,
-                    width: 300,
-                    child: ElevatedButton(
-                      onPressed: _isUploadingImage ? null : submitMedicine,
-                      child: _isUploadingImage
-                          ? Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
+
+                  // Submit Button - Gets image from BLoC
+                  BlocBuilder<ImageBloc, ImageState>(
+                    builder: (context, imageState) {
+                      File? selectedImage;
+                      if (imageState is ImageSelected) {
+                        selectedImage = imageState.image;
+                      }
+
+                      return SizedBox(
+                        height: 50,
+                        width: 300,
+                        child: ElevatedButton(
+                          onPressed: _isUploadingImage
+                              ? null
+                              : () => submitMedicine(selectedImage),
+                          child: _isUploadingImage
+                              ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              Text('Saving Image...'),
+                            ],
+                          )
+                              : Text(
+                            'Add Medicine',
+                            style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          SizedBox(width: 10),
-                          Text('Uploading...'),
-                        ],
-                      )
-                          : Text(
-                        'Add',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
                 ],

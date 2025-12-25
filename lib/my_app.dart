@@ -10,6 +10,8 @@ import 'package:meditrack/bloc/theme_bloc/theme_bloc.dart';
 import 'package:meditrack/repository/medicine_repository.dart';
 import 'package:meditrack/repository/dosage_repository.dart';
 
+import 'bloc/image/image_bloc.dart';
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -33,6 +35,9 @@ class MyApp extends StatelessWidget {
             create: (context) => MedicineBloc(
               context.read<MedicineRepository>(),
             ),
+          ),
+          BlocProvider<ImageBloc>(
+            create: (context) => ImageBloc(),
           ),
           BlocProvider<DosageBloc>(
             create: (context) => DosageBloc(
