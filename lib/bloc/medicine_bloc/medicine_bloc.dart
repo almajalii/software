@@ -7,11 +7,11 @@ part 'medicine_event.dart';
 part 'medicine_state.dart';
 
 class MedicineBloc extends Bloc<MedicineEvent, MedicineState> {
-  //this is dependency injection
   final MedicineRepository medicineRepository;
 
   MedicineBloc(this.medicineRepository) : super(MedicineLoadingState()) {
-    //1
+
+    //1 Load all medicines
     on<LoadMedicinesEvent>((event, emit) async {
       emit(MedicineLoadingState());
 
@@ -24,27 +24,31 @@ class MedicineBloc extends Bloc<MedicineEvent, MedicineState> {
       );
     });
 
-    //2
+    //2 Add medicine
     on<AddMedicineEvent>((event, emit) async {
       await medicineRepository.addMedicine(event.userId, event.medicine);
       add(LoadMedicinesEvent(event.userId));
     });
-    //3
+
+    //3 Update medicine
     on<UpdateMedicineEvent>((event, emit) async {
       await medicineRepository.updateMedicine(
           event.userId, event.medId, event.medicine);
     });
-    //4
+
+    //4 Remove medicine (move to recycle bin)
     on<RemoveMedicineEvent>((event, emit) async {
       emit(MedicineLoadingState());
       await medicineRepository.removeMedicine(
           event.userId, event.medId, event.medicine);
     });
-    //5
+
+    //5 Delete medicine permanently
     on<DeleteMedicineEvent>((event, emit) async {
       await medicineRepository.deleteMedicine(event.userId, event.medId);
     });
-    //6
+
+    //6 Load removed medicines
     on<LoadRemovedMedicinesEvent>((event, emit) async {
       emit(MedicineLoadingState());
 
@@ -58,10 +62,9 @@ class MedicineBloc extends Bloc<MedicineEvent, MedicineState> {
       );
     });
 
-    //7. Search / filter medicines (without emit.forEach)
+    //7 Search/filter medicines by name (local filtering)
     on<FilterMedicinesEvent>((event, emit) {
       try {
-        // Get the current loaded medicines from state
         List<Medicine> currentMeds = [];
         if (state is MedicineLoadedState) {
           currentMeds = (state as MedicineLoadedState).medicines;
@@ -69,7 +72,6 @@ class MedicineBloc extends Bloc<MedicineEvent, MedicineState> {
           currentMeds = (state as FilteredMedicineState).medicines;
         }
 
-        // Filter locally based on query
         final filtered = currentMeds
             .where((med) =>
             med.name.toLowerCase().contains(event.query.toLowerCase()))
@@ -80,5 +82,73 @@ class MedicineBloc extends Bloc<MedicineEvent, MedicineState> {
         emit(MedicineErrorState(e.toString()));
       }
     });
+
+    //8 Filter by type
+    on<FilterByTypeEvent>((event, emit) async {
+      emit(MedicineLoadingState());
+
+      final stream = medicineRepository.getMedicinesByType(
+        event.userId,
+        event.type,
+      );
+
+      await emit.forEach(
+        stream,
+        onData: (medicines) => FilteredMedicineState(medicines),
+        onError: (_, __) => MedicineErrorState("Failed to filter by type"),
+      );
+    });
+
+    //9 Filter by category
+    on<FilterByCategoryEvent>((event, emit) async {
+      emit(MedicineLoadingState());
+
+      final stream = medicineRepository.getMedicinesByCategory(
+        event.userId,
+        event.category,
+      );
+
+      await emit.forEach(
+        stream,
+        onData: (medicines) => FilteredMedicineState(medicines),
+        onError: (_, __) => MedicineErrorState("Failed to filter by category"),
+      );
+    });
+
+    //10 Filter by type AND category
+    on<FilterByTypeAndCategoryEvent>((event, emit) async {
+      emit(MedicineLoadingState());
+
+      final stream = medicineRepository.getMedicinesByTypeAndCategory(
+        event.userId,
+        event.type,
+        event.category,
+      );
+
+      await emit.forEach(
+        stream,
+        onData: (medicines) => FilteredMedicineState(medicines),
+        onError: (_, __) =>
+            MedicineErrorState("Failed to filter by type and category"),
+      );
+    });
+
+    //11 Advanced filter - combines search, type, and category
+    on<AdvancedFilterEvent>((event, emit) async {
+      emit(MedicineLoadingState());
+
+      final stream = medicineRepository.filterMedicines(
+        userId: event.userId,
+        searchQuery: event.searchQuery,
+        type: event.type,
+        category: event.category,
+      );
+
+      await emit.forEach(
+        stream,
+        onData: (medicines) => FilteredMedicineState(medicines),
+        onError: (_, __) => MedicineErrorState("Failed to apply filters"),
+      );
+    });
   }
-  }
+}

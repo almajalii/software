@@ -14,9 +14,8 @@ class MedicineRepository {
         .snapshots()
         .map(
           (snapshot) =>
-              snapshot.docs.map((doc) => Medicine.fromFirestore(doc)).toList(),
-        );
-    //Converts each Firestore document into a Medicine object
+          snapshot.docs.map((doc) => Medicine.fromFirestore(doc)).toList(),
+    );
   }
 
   //2 addMedicines
@@ -26,16 +25,14 @@ class MedicineRepository {
         .doc(userId)
         .collection('medicines')
         .add(medicine.toFirestore());
-    //Converts the Medicine object into a Firestore-friendly Map<String, dynamic>
   }
 
   //3 updateMedicines
   Future<void> updateMedicine(
-    String userId,
-    String medId,
-    Medicine medicine,
-  ) async {
-    //Uses the medId to locate the document.
+      String userId,
+      String medId,
+      Medicine medicine,
+      ) async {
     await firestore
         .collection('users')
         .doc(userId)
@@ -46,10 +43,10 @@ class MedicineRepository {
 
   //4 Remove medicine (move to recycle bin)
   Future<void> removeMedicine(
-    String userId,
-    String medId,
-    Medicine medicine,
-  ) async {
+      String userId,
+      String medId,
+      Medicine medicine,
+      ) async {
     final medRef = firestore
         .collection('users')
         .doc(userId)
@@ -77,8 +74,8 @@ class MedicineRepository {
         .snapshots()
         .map(
           (snapshot) =>
-              snapshot.docs.map((doc) => Medicine.fromFirestore(doc)).toList(),
-        );
+          snapshot.docs.map((doc) => Medicine.fromFirestore(doc)).toList(),
+    );
   }
 
   //6 Permanently delete from recycle bin
@@ -91,8 +88,7 @@ class MedicineRepository {
         .delete();
   }
 
-
-  // decrement quantity by one
+  //7 decrement quantity by one
   Future<void> decrementMedicineQuantity(String userId, String medId) async {
     final docRef = firestore
         .collection('users')
@@ -110,6 +106,7 @@ class MedicineRepository {
     });
   }
 
+  //8 Search medicines by name
   Stream<List<Medicine>> searchMedicines(String userId, String query) {
     return firestore
         .collection('users')
@@ -125,6 +122,87 @@ class MedicineRepository {
             (med) => med.name.toLowerCase().contains(query.toLowerCase()),
       )
           .toList();
+    });
+  }
+
+  //9 Filter medicines by type
+  Stream<List<Medicine>> getMedicinesByType(String userId, String type) {
+    return firestore
+        .collection('users')
+        .doc(userId)
+        .collection('medicines')
+        .where('type', isEqualTo: type)
+        .snapshots()
+        .map(
+          (snapshot) =>
+          snapshot.docs.map((doc) => Medicine.fromFirestore(doc)).toList(),
+    );
+  }
+
+  //10 Filter medicines by category
+  Stream<List<Medicine>> getMedicinesByCategory(String userId, String category) {
+    return firestore
+        .collection('users')
+        .doc(userId)
+        .collection('medicines')
+        .where('category', isEqualTo: category)
+        .snapshots()
+        .map(
+          (snapshot) =>
+          snapshot.docs.map((doc) => Medicine.fromFirestore(doc)).toList(),
+    );
+  }
+
+  //11 Filter medicines by type AND category
+  Stream<List<Medicine>> getMedicinesByTypeAndCategory(
+      String userId, String type, String category) {
+    return firestore
+        .collection('users')
+        .doc(userId)
+        .collection('medicines')
+        .where('type', isEqualTo: type)
+        .where('category', isEqualTo: category)
+        .snapshots()
+        .map(
+          (snapshot) =>
+          snapshot.docs.map((doc) => Medicine.fromFirestore(doc)).toList(),
+    );
+  }
+
+  //12 Advanced filter - combines search, type, and category
+  Stream<List<Medicine>> filterMedicines({
+    required String userId,
+    String? searchQuery,
+    String? type,
+    String? category,
+  }) {
+    return firestore
+        .collection('users')
+        .doc(userId)
+        .collection('medicines')
+        .snapshots()
+        .map((snapshot) {
+      var allMeds = snapshot.docs.map((doc) => Medicine.fromFirestore(doc)).toList();
+
+      // Apply search filter
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        allMeds = allMeds
+            .where((med) =>
+            med.name.toLowerCase().contains(searchQuery.toLowerCase()))
+            .toList();
+      }
+
+      // Apply type filter
+      if (type != null && type.isNotEmpty) {
+        allMeds = allMeds.where((med) => med.type == type).toList();
+      }
+
+      // Apply category filter
+      if (category != null && category.isNotEmpty) {
+        allMeds = allMeds.where((med) => med.category == category).toList();
+      }
+
+      return allMeds;
     });
   }
 }

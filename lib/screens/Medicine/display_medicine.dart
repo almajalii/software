@@ -8,6 +8,7 @@ import 'package:meditrack/style/colors.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:meditrack/widgets/medicine_card.dart';
 import '../../model/medicine.dart';
+import '../../repository/medicine_constants.dart';
 
 class DisplayMedicine extends StatefulWidget {
   const DisplayMedicine({super.key});
@@ -18,10 +19,12 @@ class DisplayMedicine extends StatefulWidget {
 
 class _DisplayMedicineState extends State<DisplayMedicine>
     with AutomaticKeepAliveClientMixin {
-  //AutomaticKeepAliveClientMixin ensures that when this screen is part of a BottomNavigationBar tab, it doesn’t rebuild from scratch when you switch tabs.
   List<Medicine> medicinesFiltered = [];
   final myTextField = MyTextField();
   final TextEditingController searchController = TextEditingController();
+
+  String? selectedType;
+  String? selectedCategory;
 
   @override
   bool get wantKeepAlive => true;
@@ -33,8 +36,29 @@ class _DisplayMedicineState extends State<DisplayMedicine>
     context.read<MedicineBloc>().add(LoadMedicinesEvent(userId));
   }
 
+  List<Medicine> _applyFilters(List<Medicine> medicines) {
+    return medicines.where((med) {
+      final matchesSearch = searchController.text.isEmpty ||
+          med.name.toLowerCase().contains(searchController.text.toLowerCase());
+      final matchesType = selectedType == null || med.type == selectedType;
+      final matchesCategory = selectedCategory == null || med.category == selectedCategory;
+
+      return matchesSearch && matchesType && matchesCategory;
+    }).toList();
+  }
+
+  void _clearFilters() {
+    setState(() {
+      selectedType = null;
+      selectedCategory = null;
+      searchController.clear();
+      medicinesFiltered = [];
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final userId = FirebaseAuth.instance.currentUser!.uid;
 
     return Scaffold(
@@ -51,36 +75,30 @@ class _DisplayMedicineState extends State<DisplayMedicine>
           if (state is MedicineLoadedState) {
             final medicines = state.medicines;
 
-            // Apply search filter
-            final query = searchController.text.toLowerCase();
-            medicinesFiltered =
-                medicines
-                    .where((med) => med.name.toLowerCase().contains(query))
-                    .toList();
+            // Apply filters
+            medicinesFiltered = _applyFilters(medicines);
 
             return Column(
               children: [
+                // Top bar with recycle bin
                 Align(
                   alignment: Alignment.topRight,
                   child: IconButton(
                     icon: const Icon(Icons.recycling),
                     onPressed: () async {
-                      // Open Recycle Bin as a full-screen modal
                       await Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder:
-                              (_) => RemovedMedicinesScreen(userId: userId),
+                          builder: (_) => RemovedMedicinesScreen(userId: userId),
                         ),
                       );
-                      // Refresh medicines after coming back
-                      context.read<MedicineBloc>().add(
-                        LoadMedicinesEvent(userId),
-                      );
+                      context.read<MedicineBloc>().add(LoadMedicinesEvent(userId));
                     },
                   ),
                 ),
+
+                // Search bar
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: TextField(
                     controller: searchController,
                     decoration: InputDecoration(
@@ -88,11 +106,10 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                       hintText: 'Search medicines...',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none, // removes the border
+                        borderSide: BorderSide.none,
                       ),
                       filled: true,
                       fillColor: Colors.grey[200],
-                      // light gray background
                       contentPadding: const EdgeInsets.symmetric(
                         vertical: 0,
                         horizontal: 16,
@@ -100,32 +117,190 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                     ),
                     onChanged: (query) {
                       setState(() {
-                        medicinesFiltered =
-                            medicines
-                                .where(
-                                  (med) => med.name.toLowerCase().contains(
-                                    query.toLowerCase(),
-                                  ),
-                                )
-                                .toList();
+                        // Trigger rebuild which will apply filters
                       });
                     },
                   ),
                 ),
 
-                Expanded(
-                  child:
-                      medicinesFiltered.isEmpty
-                          ? const Center(child: Text("No medicines found"))
-                          : ListView.builder(
-                            itemCount: medicinesFiltered.length,
-                            itemBuilder: (context, index) {
-                              return MedicineCard(
-                                med: medicinesFiltered[index],
-                                myTextField: myTextField,
-                              );
-                            },
+                const SizedBox(height: 12),
+
+                // Filter chips row
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    children: [
+                      // Type filter
+                      Expanded(
+                        child: PopupMenuButton<String>(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: selectedType != null ? AppColors.primary.withOpacity(0.2) : Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: selectedType != null ? AppColors.primary : Colors.grey[300]!,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.category,
+                                  size: 18,
+                                  color: selectedType != null ? AppColors.primary : Colors.grey[600],
+                                ),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    selectedType ?? 'Type',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: selectedType != null ? AppColors.primary : Colors.grey[700],
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (selectedType != null) const SizedBox(width: 4),
+                                if (selectedType != null)
+                                  Icon(Icons.close, size: 14, color: AppColors.primary),
+                              ],
+                            ),
                           ),
+                          itemBuilder: (context) => [
+                            const PopupMenuItem<String>(
+                              value: null,
+                              child: Text('All Types', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                            ...medicineTypes.map((type) => PopupMenuItem<String>(
+                              value: type,
+                              child: Text(type),
+                            )),
+                          ],
+                          onSelected: (value) {
+                            setState(() {
+                              selectedType = value;
+                            });
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(width: 8),
+
+                      // Category filter
+                      Expanded(
+                        child: PopupMenuButton<String>(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: selectedCategory != null ? AppColors.teal.withOpacity(0.2) : Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: selectedCategory != null ? AppColors.teal : Colors.grey[300]!,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.label,
+                                  size: 18,
+                                  color: selectedCategory != null ? AppColors.teal : Colors.grey[600],
+                                ),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    selectedCategory ?? 'Category',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: selectedCategory != null ? AppColors.teal : Colors.grey[700],
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (selectedCategory != null) const SizedBox(width: 4),
+                                if (selectedCategory != null)
+                                  Icon(Icons.close, size: 14, color: AppColors.teal),
+                              ],
+                            ),
+                          ),
+                          itemBuilder: (context) => [
+                            const PopupMenuItem<String>(
+                              value: null,
+                              child: Text('All Categories', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                            ...medicineCategories.map((category) => PopupMenuItem<String>(
+                              value: category,
+                              child: Text(category),
+                            )),
+                          ],
+                          onSelected: (value) {
+                            setState(() {
+                              selectedCategory = value;
+                            });
+                          },
+                        ),
+                      ),
+
+                      // Clear filters button
+                      if (selectedType != null || selectedCategory != null || searchController.text.isNotEmpty)
+                        IconButton(
+                          icon: const Icon(Icons.clear_all, color: Colors.red),
+                          onPressed: _clearFilters,
+                          tooltip: 'Clear all filters',
+                        ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Results count
+                if (selectedType != null || selectedCategory != null || searchController.text.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      '${medicinesFiltered.length} result(s) found',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 8),
+
+                // Medicine list
+                Expanded(
+                  child: medicinesFiltered.isEmpty
+                      ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No medicines found',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                        ),
+                        if (selectedType != null || selectedCategory != null || searchController.text.isNotEmpty)
+                          TextButton(
+                            onPressed: _clearFilters,
+                            child: const Text('Clear filters'),
+                          ),
+                      ],
+                    ),
+                  )
+                      : ListView.builder(
+                    itemCount: medicinesFiltered.length,
+                    itemBuilder: (context, index) {
+                      return MedicineCard(
+                        med: medicinesFiltered[index],
+                        myTextField: myTextField,
+                      );
+                    },
+                  ),
                 ),
               ],
             );
