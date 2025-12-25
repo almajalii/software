@@ -1,10 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
 
-//represent a medicine item exactly the way it exists inside Firestore
 class Medicine extends Equatable {
-  final String id; //Firestore doc ID
-  final String userId; //owner
+  final String id;
+  final String userId;
   final String name;
   final String type;
   final String category;
@@ -12,6 +11,7 @@ class Medicine extends Equatable {
   final int quantity;
   final DateTime dateAdded;
   final DateTime dateExpired;
+  final String? imageUrl;
 
   const Medicine({
     required this.id,
@@ -23,9 +23,9 @@ class Medicine extends Equatable {
     required this.quantity,
     required this.dateAdded,
     required this.dateExpired,
+    this.imageUrl,
   });
 
-  //firestore->model
   factory Medicine.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return Medicine(
@@ -38,11 +38,10 @@ class Medicine extends Equatable {
       quantity: data['quantity'] ?? 0,
       dateAdded: (data['dateAdded'] as Timestamp?)?.toDate() ?? DateTime.now(),
       dateExpired: (data['dateExpired'] as Timestamp?)?.toDate() ?? DateTime.now().add(Duration(days: 365)),
-      //timestamps -> dateTime
+      imageUrl: data['imageUrl'],
     );
   }
 
-  //model->firestore
   Map<String, dynamic> toFirestore() {
     return {
       'userId': userId,
@@ -53,10 +52,36 @@ class Medicine extends Equatable {
       'quantity': quantity,
       'dateAdded': Timestamp.fromDate(dateAdded),
       'dateExpired': Timestamp.fromDate(dateExpired),
-      //datetime ->timestamps
+      'imageUrl': imageUrl,
     };
   }
 
+  Medicine copyWith({
+    String? id,
+    String? userId,
+    String? name,
+    String? type,
+    String? category,
+    String? notes,
+    int? quantity,
+    DateTime? dateAdded,
+    DateTime? dateExpired,
+    String? imageUrl,
+  }) {
+    return Medicine(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      type: type ?? this.type,
+      category: category ?? this.category,
+      notes: notes ?? this.notes,
+      quantity: quantity ?? this.quantity,
+      dateAdded: dateAdded ?? this.dateAdded,
+      dateExpired: dateExpired ?? this.dateExpired,
+      imageUrl: imageUrl ?? this.imageUrl,
+    );
+  }
+
   @override
-  List<Object> get props => [id, userId, name, type, category, notes, quantity, dateAdded, dateExpired];
+  List<Object?> get props => [id, userId, name, type, category, notes, quantity, dateAdded, dateExpired, imageUrl];
 }

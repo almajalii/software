@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -108,6 +109,10 @@ class _MedicineCardState extends State<MedicineCard> {
   }
 
   Future<dynamic> DisplayMedicineDialog(BuildContext context, bool isDarkMode) {
+    // Debug: Print image URL/path
+    print('🖼️ Medicine: ${widget.med.name}');
+    print('🖼️ Image URL/Path: ${widget.med.imageUrl}');
+
     return showDialog(
       context: context,
       builder:
@@ -124,6 +129,45 @@ class _MedicineCardState extends State<MedicineCard> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Display image if available (from LOCAL storage)
+              if (widget.med.imageUrl != null && widget.med.imageUrl!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(
+                      File(widget.med.imageUrl!),
+                      height: 200,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 200,
+                          color: isDarkMode ? Color(0xFF1E1E1E) : Colors.grey[200],
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.broken_image,
+                                  size: 48,
+                                  color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Image not found',
+                                  style: TextStyle(
+                                    color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
               Text(
                 'Name: ${widget.med.name}',
                 style: TextStyle(
