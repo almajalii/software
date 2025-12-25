@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:meditrack/widgets/MyTextField.dart';
 import 'package:meditrack/screens/auth/start_screen.dart';
 import 'package:meditrack/style/colors.dart';
+import 'package:meditrack/bloc/theme_bloc/theme_bloc.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -33,7 +35,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     user = _auth.currentUser;
     if (user == null) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (context) => StartScreen(),));
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => StartScreen(),
+        ),
+      );
     } else {
       loadUserData();
     }
@@ -80,36 +86,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void logout() async {
     final shouldLogout = await showDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Log Out'),
-            backgroundColor: Colors.white,
-            content: const Text('Are you sure you want to log out?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false), // Cancel
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true), // Confirm
-                child: const Text('Log Out'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Log Out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
           ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Log Out'),
+          ),
+        ],
+      ),
     );
 
     if (shouldLogout == true) {
       await _auth.signOut();
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const StartScreen()),
-        (Route<dynamic> route) => false,
+            (Route<dynamic> route) => false,
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Show loading or nothing if user not signed in (should redirect soon)
     if (user == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -123,7 +126,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(onPressed: logout, icon: const Icon(Icons.logout), color: AppColors.error,),
+          IconButton(
+            onPressed: logout,
+            icon: const Icon(Icons.logout),
+            color: AppColors.error,
+          ),
         ],
         flexibleSpace: Container(
           decoration: const BoxDecoration(
@@ -133,44 +140,129 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ),
-      body:
-          isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Icon(Icons.person, color: AppColors.primary, size: 80),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Icon(Icons.person, color: AppColors.primary, size: 80),
+            const SizedBox(height: 20),
 
-                    myTextField.buildTextField(
-                      'Display Name',
-                      displayNameController,
-                    ),
-                    myTextField.buildTextField('Email', emailController),
-                    myTextField.buildTextField('Phone Number', phoneController),
-                    const SizedBox(height: 5),
-                    Text(
-                      'Further Information: (optional)',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 5),
-                    myTextField.buildTextField('Allergies', allergiesController),
-                    myTextField.buildTextField(
-                      'Medical Conditions',
-                      medicalConditionsController,
-                    ),
-                    myTextField.buildTextField(
-                      'Emergency Contact',
-                      emergencyContactController,
-                    ),
-                    const SizedBox(height: 30),
-                    ElevatedButton(
-                      onPressed: saveUserData,
-                      child: const Text('Save Changes'),
-                    ),
-                  ],
-                ),
+            // Theme Toggle Card
+            Card(
+              elevation: 2,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
+              child: BlocBuilder<ThemeBloc, ThemeState>(
+                builder: (context, themeState) {
+                  return SwitchListTile(
+                    title: const Text(
+                      'Dark Mode',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      themeState.isDarkMode
+                          ? 'Dark theme enabled'
+                          : 'Light theme enabled',
+                    ),
+                    value: themeState.isDarkMode,
+                    onChanged: (value) {
+                      context.read<ThemeBloc>().add(ToggleThemeEvent());
+                    },
+                    secondary: Icon(
+                      themeState.isDarkMode
+                          ? Icons.dark_mode
+                          : Icons.light_mode,
+                      color: AppColors.primary,
+                    ),
+                    activeColor: AppColors.primary,
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            _buildThemedTextField(
+              context,
+              'Display Name',
+              displayNameController,
+            ),
+            _buildThemedTextField(context, 'Email', emailController),
+            _buildThemedTextField(context, 'Phone Number', phoneController),
+            const SizedBox(height: 5),
+            Text(
+              'Further Information: (optional)',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 5),
+            _buildThemedTextField(context, 'Allergies', allergiesController),
+            _buildThemedTextField(
+              context,
+              'Medical Conditions',
+              medicalConditionsController,
+            ),
+            _buildThemedTextField(
+              context,
+              'Emergency Contact',
+              emergencyContactController,
+            ),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              onPressed: saveUserData,
+              child: const Text('Save Changes'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemedTextField(
+      BuildContext context,
+      String label,
+      TextEditingController controller,
+      ) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
+        controller: controller,
+        style: TextStyle(
+          color: isDarkMode ? Colors.white : Colors.black,
+        ),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(
+            color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+          ),
+          fillColor: isDarkMode ? Color(0xFF2C2C2C) : Color(0xFFF2F4F8),
+          filled: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: isDarkMode ? Color(0xFF3C3C3C) : Color(0xFFC8D1DC),
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: isDarkMode ? Color(0xFF3C3C3C) : Color(0xFFC8D1DC),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: Color(0xFF00B9E4),
+              width: 2,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

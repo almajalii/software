@@ -26,17 +26,34 @@ class _DisplayDosageState extends State<DisplayDosage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: isDarkMode ? Color(0xFF121212) : Colors.white,
       body: BlocBuilder<MedicineBloc, MedicineState>(
         builder: (context, medState) {
           if (medState is MedicineLoadingState) {
             return const Center(child: CircularProgressIndicator());
           } else if (medState is MedicineErrorState) {
-            return Center(child: Text(medState.errorMessage));
+            return Center(
+              child: Text(
+                medState.errorMessage,
+                style: TextStyle(
+                  color: isDarkMode ? Colors.grey[400] : Colors.black87,
+                ),
+              ),
+            );
           } else if (medState is MedicineLoadedState) {
             final medicines = medState.medicines;
             if (medicines.isEmpty) {
-              return const Center(child: Text('No medicines found'));
+              return Center(
+                child: Text(
+                  'No medicines found',
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.grey[400] : Colors.black87,
+                  ),
+                ),
+              );
             }
 
             // Load dosages once
@@ -52,34 +69,41 @@ class _DisplayDosageState extends State<DisplayDosage> {
                 if (dosageState is DosageLoadingState) {
                   return const Center(child: CircularProgressIndicator());
                 } else if (dosageState is DosageErrorState) {
-                  return Center(child: Text(dosageState.errorMessage));
+                  return Center(
+                    child: Text(
+                      dosageState.errorMessage,
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.grey[400] : Colors.black87,
+                      ),
+                    ),
+                  );
                 } else if (dosageState is DosageLoadedState) {
                   final allDosages = dosageState.dosagesByMedicine;
 
                   return ListView(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     children:
-                        medicines.map((med) {
-                          final medDosages = allDosages[med.id] ?? [];
-                          if (medDosages.isEmpty) return const SizedBox.shrink();
+                    medicines.map((med) {
+                      final medDosages = allDosages[med.id] ?? [];
+                      if (medDosages.isEmpty) return const SizedBox.shrink();
 
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                child: Text(
-                                  med.name.toUpperCase(),
-                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.darkBlue,
-                                  ),
-                                ),
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Text(
+                              med.name.toUpperCase(),
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: isDarkMode ? Colors.grey[200] : AppColors.darkBlue,
                               ),
-                              ...medDosages.map((d) => DosageCard(dosage: d, medId: med.id)),
-                            ],
-                          );
-                        }).toList(),
+                            ),
+                          ),
+                          ...medDosages.map((d) => DosageCard(dosage: d, medId: med.id)),
+                        ],
+                      );
+                    }).toList(),
                   );
                 }
 

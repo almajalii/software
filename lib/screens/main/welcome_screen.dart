@@ -34,12 +34,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     if (user == null) {
       return const Scaffold(body: Center(child: Text('User not logged in')));
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDarkMode ? Color(0xFF121212) : Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -51,11 +53,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 children: [
                   TextSpan(
                     text: '${getGreeting()}, ',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.darkBlue),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: isDarkMode ? Colors.grey[300] : AppColors.darkBlue,
+                    ),
                   ),
                   TextSpan(
                     text: '${user?.displayName ?? 'User'}!',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.primary),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: AppColors.primary,
+                    ),
                   ),
                 ],
               ),
@@ -63,11 +69,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             const SizedBox(height: 30),
             Row(
               children: [
-                Icon(Icons.medication, color: AppColors.primary),
+                Icon(
+                  Icons.medication,
+                  color: isDarkMode ? AppColors.primary.withOpacity(0.8) : AppColors.primary,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Medicines To Take Today:',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.grey[300] : Colors.black87,
+                  ),
                 ),
               ],
             ),
@@ -81,14 +93,28 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   }
 
                   if (medState is MedicineErrorState) {
-                    return Center(child: Text(medState.errorMessage));
+                    return Center(
+                      child: Text(
+                        medState.errorMessage,
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.grey[400] : Colors.black87,
+                        ),
+                      ),
+                    );
                   }
 
                   if (medState is MedicineLoadedState) {
                     final medicines = medState.medicines;
 
                     if (medicines.isEmpty) {
-                      return const Center(child: Text('No medicines found'));
+                      return Center(
+                        child: Text(
+                          'No medicines found',
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.grey[400] : Colors.black87,
+                          ),
+                        ),
+                      );
                     }
 
                     // Load all dosages after medicines load
@@ -105,7 +131,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         }
 
                         if (dosageState is DosageErrorState) {
-                          return Center(child: Text(dosageState.errorMessage));
+                          return Center(
+                            child: Text(
+                              dosageState.errorMessage,
+                              style: TextStyle(
+                                color: isDarkMode ? Colors.grey[400] : Colors.black87,
+                              ),
+                            ),
+                          );
                         }
 
                         if (dosageState is DosageLoadedState) {
@@ -114,37 +147,37 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
                           return ListView(
                             children:
-                                medicines.map((med) {
-                                  final medDosages = allByMed[med.id] ?? [];
+                            medicines.map((med) {
+                              final medDosages = allByMed[med.id] ?? [];
 
-                                  final todayDosages =
-                                      medDosages.where((d) {
-                                        final start = d.startDate;
-                                        final end = d.endDate;
-                                        return !start.isAfter(today) && (end == null || !end.isBefore(today));
-                                      }).toList();
+                              final todayDosages =
+                              medDosages.where((d) {
+                                final start = d.startDate;
+                                final end = d.endDate;
+                                return !start.isAfter(today) && (end == null || !end.isBefore(today));
+                              }).toList();
 
-                                  if (todayDosages.isEmpty) {
-                                    return const SizedBox();
-                                  }
+                              if (todayDosages.isEmpty) {
+                                return const SizedBox();
+                              }
 
-                                  return Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                        child: Text(
-                                          med.name.toUpperCase(),
-                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                            color: AppColors.darkBlue,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    child: Text(
+                                      med.name.toUpperCase(),
+                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        color: isDarkMode ? Colors.grey[300] : AppColors.darkBlue,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                      ...todayDosages.map((dosage) => _buildDosageCard(med.id, dosage)),
-                                    ],
-                                  );
-                                }).toList(),
+                                    ),
+                                  ),
+                                  ...todayDosages.map((dosage) => _buildDosageCard(med.id, dosage, isDarkMode)),
+                                ],
+                              );
+                            }).toList(),
                           );
                         }
 
@@ -163,11 +196,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     );
   }
 
-  Widget _buildDosageCard(String medId, Dosage dosage) {
+  Widget _buildDosageCard(String medId, Dosage dosage, bool isDarkMode) {
     final today = DateTime.now();
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+      color: isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 4,
       child: Padding(
@@ -175,7 +209,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Dosage: ${dosage.dosage}, Frequency: ${dosage.frequency}'),
+            Text(
+              'Dosage: ${dosage.dosage}, Frequency: ${dosage.frequency}',
+              style: TextStyle(
+                color: isDarkMode ? Colors.grey[300] : Colors.black87,
+              ),
+            ),
             const SizedBox(height: 10),
 
             ...List.generate(dosage.times.length, (index) {
@@ -190,28 +229,38 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
               final isTakenToday =
                   takenDate != null &&
-                  takenDate.year == today.year &&
-                  takenDate.month == today.month &&
-                  takenDate.day == today.day;
+                      takenDate.year == today.year &&
+                      takenDate.month == today.month &&
+                      takenDate.day == today.day;
 
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Time: $time"),
+                  Text(
+                    "Time: $time",
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.grey[400] : Colors.black87,
+                    ),
+                  ),
                   TextButton.icon(
                     icon: Icon(
                       isTakenToday ? Icons.check_circle : Icons.radio_button_unchecked,
-                      color: isTakenToday ? Colors.green : Colors.grey,
+                      color: isTakenToday ? Colors.green : (isDarkMode ? Colors.grey[600] : Colors.grey),
                     ),
-                    label: Text(isTakenToday ? "Taken" : "Mark as Taken"),
+                    label: Text(
+                      isTakenToday ? "Taken" : "Mark as Taken",
+                      style: TextStyle(
+                        color: isTakenToday ? Colors.green : (isDarkMode ? Colors.grey[400] : Colors.black87),
+                      ),
+                    ),
                     onPressed:
-                        isTakenToday
-                            ? null
-                            : () {
-                              context.read<DosageBloc>().add(
-                                MarkDosageTimeTakenEvent(user!.uid, medId, dosage.id, index),
-                              );
-                            },
+                    isTakenToday
+                        ? null
+                        : () {
+                      context.read<DosageBloc>().add(
+                        MarkDosageTimeTakenEvent(user!.uid, medId, dosage.id, index),
+                      );
+                    },
                   ),
                 ],
               );

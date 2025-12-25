@@ -60,8 +60,10 @@ class _DisplayMedicineState extends State<DisplayMedicine>
   Widget build(BuildContext context) {
     super.build(context);
     final userId = FirebaseAuth.instance.currentUser!.uid;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDarkMode ? Color(0xFF121212) : Colors.white,
       body: BlocBuilder<MedicineBloc, MedicineState>(
         builder: (context, state) {
           if (state is MedicineLoadingState) {
@@ -69,7 +71,14 @@ class _DisplayMedicineState extends State<DisplayMedicine>
           }
 
           if (state is MedicineErrorState) {
-            return Center(child: Text(state.errorMessage));
+            return Center(
+              child: Text(
+                state.errorMessage,
+                style: TextStyle(
+                  color: isDarkMode ? Colors.grey[400] : Colors.black87,
+                ),
+              ),
+            );
           }
 
           if (state is MedicineLoadedState) {
@@ -84,7 +93,10 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                 Align(
                   alignment: Alignment.topRight,
                   child: IconButton(
-                    icon: const Icon(Icons.recycling),
+                    icon: Icon(
+                      Icons.recycling,
+                      color: isDarkMode ? Colors.grey[400] : Colors.black87,
+                    ),
                     onPressed: () async {
                       await Navigator.of(context).push(
                         MaterialPageRoute(
@@ -101,15 +113,24 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: TextField(
                     controller: searchController,
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black,
+                    ),
                     decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.search),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                      ),
                       hintText: 'Search medicines...',
+                      hintStyle: TextStyle(
+                        color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: Colors.grey[200],
+                      fillColor: isDarkMode ? Color(0xFF2C2C2C) : Colors.grey[200],
                       contentPadding: const EdgeInsets.symmetric(
                         vertical: 0,
                         horizontal: 16,
@@ -133,13 +154,18 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                       // Type filter
                       Expanded(
                         child: PopupMenuButton<String>(
+                          color: isDarkMode ? Color(0xFF2C2C2C) : Colors.white,
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              color: selectedType != null ? AppColors.primary.withOpacity(0.2) : Colors.grey[200],
+                              color: selectedType != null
+                                  ? AppColors.primary.withOpacity(0.2)
+                                  : (isDarkMode ? Color(0xFF2C2C2C) : Colors.grey[200]),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: selectedType != null ? AppColors.primary : Colors.grey[300]!,
+                                color: selectedType != null
+                                    ? AppColors.primary
+                                    : (isDarkMode ? Color(0xFF3C3C3C) : Colors.grey[300]!),
                               ),
                             ),
                             child: Row(
@@ -148,7 +174,9 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                                 Icon(
                                   Icons.category,
                                   size: 18,
-                                  color: selectedType != null ? AppColors.primary : Colors.grey[600],
+                                  color: selectedType != null
+                                      ? AppColors.primary
+                                      : (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
                                 ),
                                 const SizedBox(width: 6),
                                 Flexible(
@@ -156,7 +184,9 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                                     selectedType ?? 'Type',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: selectedType != null ? AppColors.primary : Colors.grey[700],
+                                      color: selectedType != null
+                                          ? AppColors.primary
+                                          : (isDarkMode ? Colors.grey[400] : Colors.grey[700]),
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -168,13 +198,24 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                             ),
                           ),
                           itemBuilder: (context) => [
-                            const PopupMenuItem<String>(
+                            PopupMenuItem<String>(
                               value: null,
-                              child: Text('All Types', style: TextStyle(fontWeight: FontWeight.bold)),
+                              child: Text(
+                                'All Types',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDarkMode ? Colors.white : Colors.black,
+                                ),
+                              ),
                             ),
                             ...medicineTypes.map((type) => PopupMenuItem<String>(
                               value: type,
-                              child: Text(type),
+                              child: Text(
+                                type,
+                                style: TextStyle(
+                                  color: isDarkMode ? Colors.white : Colors.black,
+                                ),
+                              ),
                             )),
                           ],
                           onSelected: (value) {
@@ -190,13 +231,18 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                       // Category filter
                       Expanded(
                         child: PopupMenuButton<String>(
+                          color: isDarkMode ? Color(0xFF2C2C2C) : Colors.white,
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              color: selectedCategory != null ? AppColors.teal.withOpacity(0.2) : Colors.grey[200],
+                              color: selectedCategory != null
+                                  ? AppColors.teal.withOpacity(0.2)
+                                  : (isDarkMode ? Color(0xFF2C2C2C) : Colors.grey[200]),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: selectedCategory != null ? AppColors.teal : Colors.grey[300]!,
+                                color: selectedCategory != null
+                                    ? AppColors.teal
+                                    : (isDarkMode ? Color(0xFF3C3C3C) : Colors.grey[300]!),
                               ),
                             ),
                             child: Row(
@@ -205,7 +251,9 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                                 Icon(
                                   Icons.label,
                                   size: 18,
-                                  color: selectedCategory != null ? AppColors.teal : Colors.grey[600],
+                                  color: selectedCategory != null
+                                      ? AppColors.teal
+                                      : (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
                                 ),
                                 const SizedBox(width: 6),
                                 Flexible(
@@ -213,7 +261,9 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                                     selectedCategory ?? 'Category',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: selectedCategory != null ? AppColors.teal : Colors.grey[700],
+                                      color: selectedCategory != null
+                                          ? AppColors.teal
+                                          : (isDarkMode ? Colors.grey[400] : Colors.grey[700]),
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -225,13 +275,24 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                             ),
                           ),
                           itemBuilder: (context) => [
-                            const PopupMenuItem<String>(
+                            PopupMenuItem<String>(
                               value: null,
-                              child: Text('All Categories', style: TextStyle(fontWeight: FontWeight.bold)),
+                              child: Text(
+                                'All Categories',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDarkMode ? Colors.white : Colors.black,
+                                ),
+                              ),
                             ),
                             ...medicineCategories.map((category) => PopupMenuItem<String>(
                               value: category,
-                              child: Text(category),
+                              child: Text(
+                                category,
+                                style: TextStyle(
+                                  color: isDarkMode ? Colors.white : Colors.black,
+                                ),
+                              ),
                             )),
                           ],
                           onSelected: (value) {
@@ -262,7 +323,7 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                     child: Text(
                       '${medicinesFiltered.length} result(s) found',
                       style: TextStyle(
-                        color: Colors.grey[600],
+                        color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
                         fontSize: 12,
                         fontStyle: FontStyle.italic,
                       ),
@@ -278,11 +339,18 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[400]),
+                        Icon(
+                          Icons.inventory_2_outlined,
+                          size: 64,
+                          color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'No medicines found',
-                          style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                            fontSize: 16,
+                          ),
                         ),
                         if (selectedType != null || selectedCategory != null || searchController.text.isNotEmpty)
                           TextButton(
@@ -316,6 +384,7 @@ class _DisplayMedicineState extends State<DisplayMedicine>
             MaterialPageRoute(builder: (_) => const AddMedicine()),
           );
         },
+        backgroundColor: AppColors.primary,
         child: Icon(Icons.add, color: AppColors.darkBlue),
       ),
     );

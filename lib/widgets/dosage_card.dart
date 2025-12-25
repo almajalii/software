@@ -13,11 +13,13 @@ class DosageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Card(
-      color: Colors.white,
+      color: isDarkMode ? Color(0xFF1E1E1E) : Colors.white,
       elevation: 2,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      shadowColor: AppColors.lightGray,
+      shadowColor: isDarkMode ? Colors.black45 : AppColors.lightGray,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -28,7 +30,14 @@ class DosageCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Dosage: ${dosage.dosage}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(
+                  "Dosage: ${dosage.dosage}",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: isDarkMode ? Colors.grey[200] : Colors.black87,
+                  ),
+                ),
 
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
@@ -38,9 +47,24 @@ class DosageCard extends StatelessWidget {
             ),
 
             const SizedBox(height: 4),
-            Text("Frequency: ${dosage.frequency}"),
-            Text("Start: ${dosage.startDate.toString().split(' ').first}"),
-            Text("End: ${dosage.endDate?.toString().split(' ').first ?? 'N/A'}"),
+            Text(
+              "Frequency: ${dosage.frequency}",
+              style: TextStyle(
+                color: isDarkMode ? Colors.grey[300] : Colors.black87,
+              ),
+            ),
+            Text(
+              "Start: ${dosage.startDate.toString().split(' ').first}",
+              style: TextStyle(
+                color: isDarkMode ? Colors.grey[300] : Colors.black87,
+              ),
+            ),
+            Text(
+              "End: ${dosage.endDate?.toString().split(' ').first ?? 'N/A'}",
+              style: TextStyle(
+                color: isDarkMode ? Colors.grey[300] : Colors.black87,
+              ),
+            ),
 
             const SizedBox(height: 8),
 
@@ -48,16 +72,30 @@ class DosageCard extends StatelessWidget {
               Wrap(
                 spacing: 8,
                 children:
-                    dosage.times.map((t) {
-                      final time = t['time'] ?? '';
-                      final taken = t['taken'] ?? false;
+                dosage.times.map((t) {
+                  final time = t['time'] ?? '';
+                  final taken = t['taken'] ?? false;
 
-                      return ElevatedButton(
-                        onPressed: null,
-                        style: ElevatedButton.styleFrom(backgroundColor: taken ? Colors.green : Colors.grey[300]),
-                        child: Text(time.toString(), style: TextStyle(color: taken ? Colors.white : Colors.black)),
-                      );
-                    }).toList(),
+                  return ElevatedButton(
+                    onPressed: null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: taken
+                          ? Colors.green
+                          : (isDarkMode ? Color(0xFF3C3C3C) : Colors.grey[300]),
+                      disabledBackgroundColor: taken
+                          ? Colors.green
+                          : (isDarkMode ? Color(0xFF3C3C3C) : Colors.grey[300]),
+                    ),
+                    child: Text(
+                      time.toString(),
+                      style: TextStyle(
+                        color: taken
+                            ? Colors.white
+                            : (isDarkMode ? Colors.grey[300] : Colors.black),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
           ],
         ),
@@ -67,32 +105,48 @@ class DosageCard extends StatelessWidget {
 
   // ------------------- DELETE CONFIRMATION -------------------
   void _showDeleteDialog(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     showDialog(
       context: context,
       builder:
           (_) => AlertDialog(
-            title: const Text("Delete dosage?"),
-            content: const Text("Are you sure you want to delete this dosage?"),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-              TextButton(
-                onPressed: () {
-                  final userId = FirebaseAuth.instance.currentUser!.uid;
-
-                  context.read<DosageBloc>().add(
-                    DeleteDosageEvent(
-                      userId,
-                      medId, // <-- FIXED: using medId passed from parent
-                      dosage.id,
-                    ),
-                  );
-
-                  Navigator.pop(context);
-                },
-                child: const Text("Delete", style: TextStyle(color: Colors.red)),
-              ),
-            ],
+        backgroundColor: isDarkMode ? Color(0xFF2C2C2C) : Colors.white,
+        title: Text(
+          "Delete dosage?",
+          style: TextStyle(
+            color: isDarkMode ? Colors.grey[200] : Colors.black87,
           ),
+        ),
+        content: Text(
+          "Are you sure you want to delete this dosage?",
+          style: TextStyle(
+            color: isDarkMode ? Colors.grey[300] : Colors.black87,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              final userId = FirebaseAuth.instance.currentUser!.uid;
+
+              context.read<DosageBloc>().add(
+                DeleteDosageEvent(
+                  userId,
+                  medId, // <-- FIXED: using medId passed from parent
+                  dosage.id,
+                ),
+              );
+
+              Navigator.pop(context);
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 }
