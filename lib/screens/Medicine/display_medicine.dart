@@ -378,6 +378,7 @@ class _DisplayMedicineState extends State<DisplayMedicine>
         },
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'medicine_fab',
         onPressed: () {
           Navigator.push(
             context,

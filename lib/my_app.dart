@@ -6,9 +6,11 @@ import 'package:meditrack/screens/auth/start_screen.dart';
 import 'package:meditrack/bloc/medicine_bloc/medicine_bloc.dart';
 import 'package:meditrack/bloc/dosage_bloc/dosage_bloc.dart';
 import 'package:meditrack/bloc/theme_bloc/theme_bloc.dart';
+import 'package:meditrack/bloc/family_bloc/family_bloc.dart';
 
 import 'package:meditrack/repository/medicine_repository.dart';
 import 'package:meditrack/repository/dosage_repository.dart';
+import 'package:meditrack/repository/family_repository.dart';
 
 import 'bloc/image/image_bloc.dart';
 
@@ -24,6 +26,9 @@ class MyApp extends StatelessWidget {
         ),
         RepositoryProvider<DosageRepository>(
           create: (_) => DosageRepository(),
+        ),
+        RepositoryProvider<FamilyRepository>(
+          create: (_) => FamilyRepository(),
         ),
       ],
       child: MultiBlocProvider(
@@ -43,6 +48,11 @@ class MyApp extends StatelessWidget {
             create: (context) => DosageBloc(
               dosageRepository: context.read<DosageRepository>(),
               medicineRepository: context.read<MedicineRepository>(),
+            ),
+          ),
+          BlocProvider<FamilyBloc>(
+            create: (context) => FamilyBloc(
+              context.read<FamilyRepository>(),
             ),
           ),
         ],

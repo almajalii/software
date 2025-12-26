@@ -116,6 +116,7 @@ class _DisplayDosageState extends State<DisplayDosage> {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'dosage_fab',
         onPressed: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const AddDosage()));
         },

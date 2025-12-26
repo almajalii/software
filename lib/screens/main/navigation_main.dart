@@ -20,33 +20,40 @@ class _NavigationMainstate extends State<NavigationMain> {
   int navIndex = 1;
   late final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-  List<Widget Function()> screens = [
-    () => DisplayDosage(), //0
-    () => WelcomeScreen(), //1
-    () => DisplayMedicine(), //2
-  ];
+  // Create screens once and keep them alive
+  late final List<Widget> screens;
+
+  @override
+  void initState() {
+    super.initState();
+    screens = [
+      DisplayDosage(), //0
+      WelcomeScreen(), //1
+      DisplayMedicine(), //2
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
-    //provides the medicine bloc
     return Scaffold(
-          appBar: MyAppBar.build(context, () => ExpiryReminder.showExpiredMedsSheet(context)),
-
-          bottomNavigationBar: BottomNavigationBar(
-            currentIndex: navIndex,
-            onTap: (value) {
-              setState(() {
-                navIndex = value;
-              });
-            },
-            items: [
-              BottomNavigationBarItem(icon: Icon(FontAwesomeIcons.pills), label: 'Dosages'),
-              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-              BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined), label: 'Inventory'),
-            ],
-          ),
-
-          body: screens[navIndex](),
-        );
+      appBar: MyAppBar.build(context, () => ExpiryReminder.showExpiredMedsSheet(context)),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: navIndex,
+        onTap: (value) {
+          setState(() {
+            navIndex = value;
+          });
+        },
+        items: [
+          BottomNavigationBarItem(icon: Icon(FontAwesomeIcons.pills), label: 'Dosages'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined), label: 'Inventory'),
+        ],
+      ),
+      body: IndexedStack(
+        index: navIndex,
+        children: screens,
+      ),
+    );
   }
 }

@@ -3,8 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:meditrack/bloc/medicine_bloc/medicine_bloc.dart';
 import 'package:meditrack/bloc/dosage_bloc/dosage_bloc.dart';
+import 'package:meditrack/bloc/family_bloc/family_bloc.dart';
 import 'package:meditrack/model/dosage.dart';
 import 'package:meditrack/style/colors.dart';
+import 'package:meditrack/widgets/family_members_widget.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -13,14 +15,22 @@ class WelcomeScreen extends StatefulWidget {
   State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> {
+class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveClientMixin {
   final User? user = FirebaseAuth.instance.currentUser;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
+    _loadData();
+  }
+
+  void _loadData() {
     if (user != null) {
       context.read<MedicineBloc>().add(LoadMedicinesEvent(user!.uid));
+      context.read<FamilyBloc>().add(LoadFamilyAccountEvent(user!.uid));
     }
   }
 
@@ -34,6 +44,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     if (user == null) {
@@ -66,12 +77,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ],
               ),
             ),
+
+            // Family Members Widget
+            FamilyMembersWidget(),
+
             const SizedBox(height: 30),
             Row(
               children: [
                 Icon(
                   Icons.medication,
-                  color: isDarkMode ? AppColors.primary.withOpacity(0.8) : AppColors.primary,
+                  color: isDarkMode ? AppColors.primary.withValues(alpha: 0.8) : AppColors.primary,
                 ),
                 const SizedBox(width: 8),
                 Text(
