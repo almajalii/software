@@ -26,6 +26,7 @@ dependencies:
   local_auth: 2.3.0
   path: ^1.9.0  # ADD THIS
   path_provider: ^2.1.5
+  url_launcher: ^6.2.5
 
 dev_dependencies:
   flutter_lints: ^5.0.0

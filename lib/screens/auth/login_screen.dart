@@ -5,6 +5,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:meditrack/widgets/MyTextField.dart';
 import 'package:meditrack/screens/auth/signup_screen.dart';
 import 'package:meditrack/screens/main/navigation_main.dart';
+import 'package:meditrack/services/account_manager.dart';
 import 'package:meditrack/style/colors.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -21,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController passwordController = TextEditingController();
   final FlutterSecureStorage storage = const FlutterSecureStorage();
   final LocalAuthentication localAuth = LocalAuthentication();
+  final AccountManager _accountManager = AccountManager();
 
   bool isLoading = false;
 
@@ -34,6 +36,9 @@ class _LoginScreenState extends State<LoginScreen> {
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
+
+      // Save account to account manager
+      await _accountManager.saveCurrentAccount();
 
       bool enableBiometrics = false;
       final canCheck = await localAuth.canCheckBiometrics;
@@ -58,7 +63,38 @@ class _LoginScreenState extends State<LoginScreen> {
         await storage.write(key: 'password', value: passwordController.text.trim());
       }
 
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const NavigationMain()));
+      // Ask if user wants to save password for quick account switching
+      final savePassword = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Quick Account Switching'),
+          content: const Text(
+            'Save your password for quick switching between accounts?\n\n'
+                'This allows you to switch accounts without re-entering your password.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('No Thanks'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ) ?? false;
+
+      if (savePassword) {
+        await _accountManager.saveAccountPassword(
+          emailController.text.trim(),
+          passwordController.text.trim(),
+        );
+      }
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const NavigationMain()),
+      );
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Login failed: ${e.message}')),
@@ -70,14 +106,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> resetPassword() async {
     if (emailController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter your email')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your email')),
+      );
       return;
     }
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: emailController.text.trim());
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password reset email sent!')));
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: emailController.text.trim(),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password reset email sent!')),
+      );
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error sending reset email')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error sending reset email')),
+      );
     }
   }
 
@@ -93,7 +137,10 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 SizedBox(height: 200, width: 200, child: Image.asset('images/1.png')),
                 const SizedBox(height: 50),
-                Text('Welcome Back!', style: Theme.of(context).textTheme.titleLarge!.copyWith(fontSize: 30)),
+                Text(
+                  'Welcome Back!',
+                  style: Theme.of(context).textTheme.titleLarge!.copyWith(fontSize: 30),
+                ),
                 const SizedBox(height: 50),
                 SizedBox(
                   width: 300,
@@ -117,7 +164,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 Container(
                   alignment: Alignment.centerRight,
-                  child: TextButton(onPressed: resetPassword, child: const Text('Forgot password?')),
+                  child: TextButton(
+                    onPressed: resetPassword,
+                    child: const Text('Forgot password?'),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 SizedBox(
@@ -125,7 +175,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   height: 50,
                   child: ElevatedButton(
                     onPressed: isLoading ? null : signIn,
-                    child: isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('LOGIN'),
+                    child: isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('LOGIN'),
                   ),
                 ),
                 const SizedBox(height: 15),
@@ -134,7 +186,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Text("Don't have an account?", style: TextStyle(color: AppColors.darkGray)),
                     TextButton(
-                      onPressed: () => Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const SignupScreen())),
+                      onPressed: () => Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (_) => const SignupScreen()),
+                      ),
                       child: const Text('SIGNUP'),
                     ),
                   ],
