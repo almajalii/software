@@ -29,6 +29,8 @@ dependencies:
   url_launcher: ^6.2.5
   # Data Export - PDF generation
   pdf: ^3.10.7
+  geolocator: ^10.1.0
+  http: ^1.1.0
 
 dev_dependencies:
   flutter_lints: ^5.0.0

@@ -9,6 +9,13 @@ import 'package:meditrack/screens/main/user_feedback_screen.dart';
 import 'package:meditrack/services/account_manager.dart';
 import 'package:meditrack/style/colors.dart';
 import 'package:meditrack/bloc/theme_bloc/theme_bloc.dart';
+import 'package:meditrack/screens/main/chat_support_screen.dart';
+import 'package:meditrack/screens/main/pharmacy_search_screen.dart';
+import 'package:meditrack/widgets/notification_bell_icon.dart';
+
+
+
+
 
 import 'account_switcher.dart';
 import 'data_export.dart';
@@ -385,6 +392,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         centerTitle: true,
         actions: [
+          const NotificationBellIcon(),
           IconButton(
             onPressed: logout,
             icon: const Icon(Icons.logout),
@@ -620,6 +628,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: openUserFeedback,
               ),
             ),
+            // Chat Support Option
+            // Chat Support Card (Req13.0)
+Card(
+  elevation: 2,
+  margin: const EdgeInsets.symmetric(vertical: 8),
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(12),
+  ),
+  child: ListTile(
+    leading: Icon(
+      Icons.chat_bubble_outline,
+      color: AppColors.primary,
+      size: 28,
+    ),
+    title: const Text(
+      'Chat Support',
+      style: TextStyle(fontWeight: FontWeight.bold),
+    ),
+    subtitle: const Text(
+      'Live chat with customer service',
+    ),
+    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const ChatSupportScreen(),
+        ),
+      );
+    },
+  ),
+),
+// Pharmacy Search Card (Req12.0)
+Card(
+  elevation: 2,
+  margin: const EdgeInsets.symmetric(vertical: 8),
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(12),
+  ),
+  child: ListTile(
+    leading: Icon(
+      Icons.local_pharmacy,
+      color: AppColors.primary,
+      size: 28,
+    ),
+    title: const Text(
+      'Find Pharmacies',
+      style: TextStyle(fontWeight: FontWeight.bold),
+    ),
+    subtitle: const Text(
+      'Search nearby pharmacies',
+    ),
+    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const PharmacySearchScreen(),
+        ),
+      );
+    },
+  ),
+),
+
 
             // Data Export Card (Req15.0)
             Card(

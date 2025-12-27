@@ -7,6 +7,8 @@ import 'package:meditrack/bloc/family_bloc/family_bloc.dart';
 import 'package:meditrack/model/dosage.dart';
 import 'package:meditrack/style/colors.dart';
 import 'package:meditrack/widgets/family_members_widget.dart';
+import 'package:meditrack/widgets/notification_bell_icon.dart';
+
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
