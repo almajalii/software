@@ -5,11 +5,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:meditrack/screens/auth/start_screen.dart';
 import 'package:meditrack/screens/main/edit_profile_screen.dart';
+import 'package:meditrack/screens/main/user_feedback_screen.dart';
 import 'package:meditrack/services/account_manager.dart';
 import 'package:meditrack/style/colors.dart';
 import 'package:meditrack/bloc/theme_bloc/theme_bloc.dart';
 
 import 'account_switcher.dart';
+import 'data_export.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -74,6 +76,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const EditProfileScreen(),
+      ),
+    );
+  }
+
+  void openUserFeedback() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const UserFeedbackScreen(),
+      ),
+    );
+  }
+
+  void openDataExport() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const DataExportScreen(),
       ),
     );
   }
@@ -575,6 +593,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 onTap: openContactUsDialog,
+              ),
+            ),
+
+            // User Feedback Card (Req16.0)
+            Card(
+              elevation: 2,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ListTile(
+                leading: Icon(
+                  Icons.feedback,
+                  color: AppColors.primary,
+                  size: 28,
+                ),
+                title: const Text(
+                  'Submit Feedback',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: const Text(
+                  'Report bugs & suggest features',
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: openUserFeedback,
+              ),
+            ),
+
+            // Data Export Card (Req15.0)
+            Card(
+              elevation: 2,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ListTile(
+                leading: Icon(
+                  Icons.download,
+                  color: AppColors.primary,
+                  size: 28,
+                ),
+                title: const Text(
+                  'Export Data',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: const Text(
+                  'Download your data as PDF',
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: openDataExport,
               ),
             ),
 

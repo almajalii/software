@@ -9,12 +9,12 @@ environment:
 
 dependencies:
   bloc: ^8.1.4
-  cloud_firestore: 5.6.7
+  cloud_firestore: 4.17.3
   cupertino_icons: ^1.0.8
   equatable: ^2.0.5
-  firebase_auth: ^5.5.3
-  firebase_core: ^3.13.0
-  firebase_storage: ^12.4.5
+  firebase_auth: 4.19.5
+  firebase_core: 2.31.0
+  firebase_storage: 11.7.5
   flutter:
     sdk: flutter
   flutter_bloc: ^8.1.6
@@ -24,9 +24,11 @@ dependencies:
   image_picker: ^1.0.7
   intl: ^0.20.2
   local_auth: 2.3.0
-  path: ^1.9.0  # ADD THIS
+  path: ^1.9.0
   path_provider: ^2.1.5
   url_launcher: ^6.2.5
+  # Data Export - PDF generation
+  pdf: ^3.10.7
 
 dev_dependencies:
   flutter_lints: ^5.0.0
