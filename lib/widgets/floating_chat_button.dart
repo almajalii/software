@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:meditrack/screens/main/chat_support_screen.dart';
+import 'package:meditrack/screens/main/settings/chat_support_screen.dart';
 import 'package:meditrack/style/colors.dart';
 
 class FloatingChatButton extends StatelessWidget {

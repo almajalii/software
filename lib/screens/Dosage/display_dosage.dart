@@ -29,11 +29,15 @@ class _DisplayDosageState extends State<DisplayDosage> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? Color(0xFF121212) : Colors.white,
+      backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.white,
       body: BlocBuilder<MedicineBloc, MedicineState>(
         builder: (context, medState) {
           if (medState is MedicineLoadingState) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(
+                color: AppColors.primary,
+              ),
+            );
           } else if (medState is MedicineErrorState) {
             return Center(
               child: Text(
@@ -45,13 +49,34 @@ class _DisplayDosageState extends State<DisplayDosage> {
             );
           } else if (medState is MedicineLoadedState) {
             final medicines = medState.medicines;
+
             if (medicines.isEmpty) {
               return Center(
-                child: Text(
-                  'No medicines found',
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.grey[400] : Colors.black87,
-                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.medication_outlined,
+                      size: 80,
+                      color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No medicines found',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Add medicines first to create dosages',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ],
                 ),
               );
             }
@@ -67,7 +92,11 @@ class _DisplayDosageState extends State<DisplayDosage> {
             return BlocBuilder<DosageBloc, DosageState>(
               builder: (context, dosageState) {
                 if (dosageState is DosageLoadingState) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                    ),
+                  );
                 } else if (dosageState is DosageErrorState) {
                   return Center(
                     child: Text(
@@ -80,10 +109,43 @@ class _DisplayDosageState extends State<DisplayDosage> {
                 } else if (dosageState is DosageLoadedState) {
                   final allDosages = dosageState.dosagesByMedicine;
 
+                  // Check if there are any dosages at all
+                  final hasAnyDosages = allDosages.values.any((dosages) => dosages.isNotEmpty);
+
+                  if (!hasAnyDosages) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.schedule_outlined,
+                            size: 80,
+                            color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No dosages found',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                              fontSize: 18,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Create a dosage schedule to get started',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
                   return ListView(
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    children:
-                    medicines.map((med) {
+                    children: medicines.map((med) {
                       final medDosages = allDosages[med.id] ?? [];
                       if (medDosages.isEmpty) return const SizedBox.shrink();
 
@@ -121,7 +183,7 @@ class _DisplayDosageState extends State<DisplayDosage> {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const AddDosage()));
         },
         backgroundColor: AppColors.primary,
-        child: Icon(Icons.add, color: AppColors.darkBlue),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

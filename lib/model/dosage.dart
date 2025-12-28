@@ -13,6 +13,10 @@ class Dosage extends Equatable {
   final DateTime? endDate;
   final DateTime addedAt;
 
+  // NEW: Family notification fields
+  final bool notifyFamilyMembers; // Enable/disable family notifications
+  final List<String> selectedFamilyMemberIds; // Which family members to notify
+
   const Dosage({
     required this.id,
     required this.medicineId,
@@ -23,28 +27,27 @@ class Dosage extends Equatable {
     required this.startDate,
     this.endDate,
     required this.addedAt,
+    this.notifyFamilyMembers = false, // Default: disabled
+    this.selectedFamilyMemberIds = const [], // Default: empty list
   });
 
   // Firestore -> Model
   factory Dosage.fromFirestore(DocumentSnapshot doc, {Medicine? parentMedicine}) {
-    final data = doc.data() as Map<String, dynamic>; //reads the doc data
+    final data = doc.data() as Map<String, dynamic>;
 
     // Convert each 'times' entry to ensure 'takenDate' is a Timestamp or null
-    final timesData =
-        (data['times'] as List<dynamic>? ?? []).map((e) {
-          //times->list (go through each item in the list)
-          final map = Map<String, dynamic>.from(e);
+    final timesData = (data['times'] as List<dynamic>? ?? []).map((e) {
+      final map = Map<String, dynamic>.from(e);
 
-          if (map['takenDate'] != null && map['takenDate'] is! Timestamp) {
-            // Try to convert string to Timestamp
-            try {
-              map['takenDate'] = Timestamp.fromDate(DateTime.parse(map['takenDate'].toString()));
-            } catch (_) {
-              map['takenDate'] = null;
-            }
-          }
-          return map;
-        }).toList();
+      if (map['takenDate'] != null && map['takenDate'] is! Timestamp) {
+        try {
+          map['takenDate'] = Timestamp.fromDate(DateTime.parse(map['takenDate'].toString()));
+        } catch (_) {
+          map['takenDate'] = null;
+        }
+      }
+      return map;
+    }).toList();
 
     return Dosage(
       id: doc.id,
@@ -54,24 +57,24 @@ class Dosage extends Equatable {
       frequency: data['frequency'] ?? '',
       times: timesData,
       startDate: (data['startDate'] as Timestamp).toDate(),
-      endDate: data['endDate'] != null ? (data['endDate'] as Timestamp).toDate() : null, //optional
-      addedAt: data['addedAt'] != null ? (data['addedAt'] as Timestamp).toDate() : DateTime.now(), //optional
+      endDate: data['endDate'] != null ? (data['endDate'] as Timestamp).toDate() : null,
+      addedAt: data['addedAt'] != null ? (data['addedAt'] as Timestamp).toDate() : DateTime.now(),
+      // NEW: Read family notification fields
+      notifyFamilyMembers: data['notifyFamilyMembers'] ?? false,
+      selectedFamilyMemberIds: List<String>.from(data['selectedFamilyMemberIds'] ?? []),
     );
   }
 
   // Convert Dosage object to Firestore-compatible map
   Map<String, dynamic> toFirestore() {
-    final timesData =
-        times.map((t) {
-          //go through each entry in the list and convert it for Firestore
-          return {
-            'time': t['time'],
-            'takenDate':
-                t['takenDate'] != null
-                    ? (t['takenDate'] is Timestamp ? t['takenDate'] : Timestamp.fromDate(t['takenDate']))
-                    : null,
-          };
-        }).toList();
+    final timesData = times.map((t) {
+      return {
+        'time': t['time'],
+        'takenDate': t['takenDate'] != null
+            ? (t['takenDate'] is Timestamp ? t['takenDate'] : Timestamp.fromDate(t['takenDate']))
+            : null,
+      };
+    }).toList();
 
     return {
       'medicineId': medicineId,
@@ -81,6 +84,9 @@ class Dosage extends Equatable {
       'startDate': Timestamp.fromDate(startDate),
       'endDate': endDate != null ? Timestamp.fromDate(endDate!) : null,
       'addedAt': Timestamp.fromDate(addedAt),
+      // NEW: Save family notification fields
+      'notifyFamilyMembers': notifyFamilyMembers,
+      'selectedFamilyMemberIds': selectedFamilyMemberIds,
     };
   }
 
@@ -95,6 +101,8 @@ class Dosage extends Equatable {
     DateTime? startDate,
     DateTime? endDate,
     DateTime? addedAt,
+    bool? notifyFamilyMembers,
+    List<String>? selectedFamilyMemberIds,
   }) {
     return Dosage(
       id: id ?? this.id,
@@ -106,9 +114,23 @@ class Dosage extends Equatable {
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       addedAt: addedAt ?? this.addedAt,
+      notifyFamilyMembers: notifyFamilyMembers ?? this.notifyFamilyMembers,
+      selectedFamilyMemberIds: selectedFamilyMemberIds ?? this.selectedFamilyMemberIds,
     );
   }
 
   @override
-  List<Object?> get props => [id, medicineId, medicine, dosage, frequency, times, startDate, endDate, addedAt];
+  List<Object?> get props => [
+    id,
+    medicineId,
+    medicine,
+    dosage,
+    frequency,
+    times,
+    startDate,
+    endDate,
+    addedAt,
+    notifyFamilyMembers,
+    selectedFamilyMemberIds,
+  ];
 }

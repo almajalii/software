@@ -182,11 +182,12 @@ class MedicineRepository {
         .collection('medicines')
         .snapshots()
         .map((snapshot) {
-      var allMeds = snapshot.docs.map((doc) => Medicine.fromFirestore(doc)).toList();
+      var medicines =
+      snapshot.docs.map((doc) => Medicine.fromFirestore(doc)).toList();
 
       // Apply search filter
       if (searchQuery != null && searchQuery.isNotEmpty) {
-        allMeds = allMeds
+        medicines = medicines
             .where((med) =>
             med.name.toLowerCase().contains(searchQuery.toLowerCase()))
             .toList();
@@ -194,15 +195,35 @@ class MedicineRepository {
 
       // Apply type filter
       if (type != null && type.isNotEmpty) {
-        allMeds = allMeds.where((med) => med.type == type).toList();
+        medicines = medicines.where((med) => med.type == type).toList();
       }
 
       // Apply category filter
       if (category != null && category.isNotEmpty) {
-        allMeds = allMeds.where((med) => med.category == category).toList();
+        medicines =
+            medicines.where((med) => med.category == category).toList();
       }
 
-      return allMeds;
+      return medicines;
     });
+  }
+
+  // NEW: 13 Get a single medicine by ID (for family notifications)
+  Future<Medicine?> getMedicineById(String userId, String medId) async {
+    try {
+      final doc = await firestore
+          .collection('users')
+          .doc(userId)
+          .collection('medicines')
+          .doc(medId)
+          .get();
+
+      if (!doc.exists) return null;
+
+      return Medicine.fromFirestore(doc);
+    } catch (e) {
+      print('Error getting medicine by ID: $e');
+      return null;
+    }
   }
 }

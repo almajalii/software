@@ -5,7 +5,9 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:meditrack/bloc/dosage_bloc/dosage_bloc.dart';
 import 'package:meditrack/bloc/medicine_bloc/medicine_bloc.dart';
+import 'package:meditrack/bloc/family_bloc/family_bloc.dart';
 import 'package:meditrack/model/medicine.dart';
+import 'package:meditrack/model/family_member.dart';
 import 'package:meditrack/style/colors.dart';
 import 'package:meditrack/widgets/MyTextField.dart';
 import 'package:meditrack/widgets/Time.dart';
@@ -30,6 +32,20 @@ class _AddDosageState extends State<AddDosage> {
   bool hasEndDate = false;
   Medicine? selectedMedicine;
   List<String> selectedTimes = [];
+
+  // NEW: Family notification variables
+  bool notifyFamily = false;
+  List<String> selectedFamilyMemberIds = [];
+  List<FamilyMember> availableFamilyMembers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // Load family account to check if user has family
+    if (userCredential != null) {
+      context.read<FamilyBloc>().add(LoadFamilyAccountEvent(userCredential!.uid));
+    }
+  }
 
   void submitDosage() {
     if (!formKey.currentState!.validate() ||
@@ -60,6 +76,9 @@ class _AddDosageState extends State<AddDosage> {
           : null,
       'addedAt': Timestamp.fromDate(DateTime.now()),
       'medicineId': selectedMedicine!.id,
+      // NEW: Add family notification fields
+      'notifyFamilyMembers': notifyFamily,
+      'selectedFamilyMemberIds': selectedFamilyMemberIds,
     };
 
     // Dispatch AddDosageEvent to DosageBloc
@@ -72,13 +91,140 @@ class _AddDosageState extends State<AddDosage> {
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("✓ Dosage added successfully!"),
+      SnackBar(
+        content: Text(
+          notifyFamily && selectedFamilyMemberIds.isNotEmpty
+              ? "✓ Dosage added! Family members will be notified"
+              : "✓ Dosage added successfully!",
+        ),
         backgroundColor: Colors.green,
       ),
     );
 
     Navigator.of(context).pop();
+  }
+
+  Future<void> _addTime(BuildContext context) async {
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (pickedTime != null) {
+      final formattedTime = pickedTime.format(context);
+      if (!selectedTimes.contains(formattedTime)) {
+        setState(() => selectedTimes.add(formattedTime));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This time is already added'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showFamilyMemberSelector(BuildContext context, bool isDarkMode) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Row(
+                    children: [
+                      const Icon(Icons.family_restroom, color: AppColors.primary),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Select Family Members to Notify',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Family members list
+                  if (availableFamilyMembers.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text('No family members available'),
+                    )
+                  else
+                    ...availableFamilyMembers.map((member) {
+                      // Don't show current user
+                      if (member.userId == userCredential?.uid) {
+                        return const SizedBox.shrink();
+                      }
+
+                      final isSelected = selectedFamilyMemberIds.contains(member.id);
+
+                      return CheckboxListTile(
+                        value: isSelected,
+                        onChanged: (checked) {
+                          setModalState(() {
+                            if (checked == true) {
+                              selectedFamilyMemberIds.add(member.id);
+                            } else {
+                              selectedFamilyMemberIds.remove(member.id);
+                            }
+                          });
+                          setState(() {}); // Update parent state too
+                        },
+                        title: Text(member.displayName),
+                        subtitle: Text(member.email),
+                        secondary: CircleAvatar(
+                          backgroundColor: AppColors.primary.withOpacity(0.1),
+                          child: Text(
+                            member.displayName.isNotEmpty
+                                ? member.displayName[0].toUpperCase()
+                                : 'F',
+                            style: const TextStyle(color: AppColors.primary),
+                          ),
+                        ),
+                        activeColor: AppColors.primary,
+                      );
+                    }),
+
+                  const SizedBox(height: 16),
+
+                  // Done button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: Text(
+                        'Done (${selectedFamilyMemberIds.length} selected)',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -151,7 +297,6 @@ class _AddDosageState extends State<AddDosage> {
                             onChanged: (val) {
                               setState(() => selectedMedicine = val);
 
-                              // Load dosages for selected medicine
                               if (val != null) {
                                 context.read<DosageBloc>().add(
                                   LoadDosagesEvent(
@@ -278,7 +423,7 @@ class _AddDosageState extends State<AddDosage> {
 
                   const SizedBox(height: 30),
 
-                  // Times section title
+                  // Times section
                   Text(
                     'Times',
                     style: TextStyle(
@@ -289,7 +434,6 @@ class _AddDosageState extends State<AddDosage> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Time Picker Button - Smaller and styled
                   OutlinedButton.icon(
                     onPressed: () => _addTime(context),
                     icon: const Icon(Icons.access_time, size: 18),
@@ -307,7 +451,7 @@ class _AddDosageState extends State<AddDosage> {
 
                   const SizedBox(height: 16),
 
-                  // Selected times - SMALLER CHIPS
+                  // Selected times
                   if (selectedTimes.isNotEmpty)
                     Container(
                       width: 300,
@@ -343,7 +487,7 @@ class _AddDosageState extends State<AddDosage> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.schedule,
                                   size: 14,
                                   color: AppColors.primary,
@@ -377,6 +521,114 @@ class _AddDosageState extends State<AddDosage> {
 
                   const SizedBox(height: 30),
 
+                  // NEW: Family Notifications Section
+                  BlocBuilder<FamilyBloc, FamilyState>(
+                    builder: (context, familyState) {
+                      bool hasFamilyAccount = false;
+
+                      if (familyState is FamilyAccountLoadedState) {
+                        hasFamilyAccount = true;
+                        availableFamilyMembers = familyState.members;
+                      }
+
+                      if (!hasFamilyAccount) {
+                        return const SizedBox.shrink(); // Hide if no family
+                      }
+
+                      return Container(
+                        width: 300,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isDarkMode
+                              ? const Color(0xFF2C2C2C)
+                              : Colors.blue[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.primary.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Header with switch
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.family_restroom,
+                                  color: AppColors.primary,
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Notify Family Members',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDarkMode
+                                          ? Colors.grey[200]
+                                          : Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                                Switch(
+                                  value: notifyFamily,
+                                  onChanged: (value) {
+                                    setState(() => notifyFamily = value);
+                                    if (!value) {
+                                      selectedFamilyMemberIds.clear();
+                                    }
+                                  },
+                                  activeColor: AppColors.primary,
+                                ),
+                              ],
+                            ),
+
+                            if (notifyFamily) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                'Family members will receive notifications when it\'s time to take this medication.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDarkMode
+                                      ? Colors.grey[400]
+                                      : Colors.grey[700],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Select members button
+                              OutlinedButton.icon(
+                                onPressed: () =>
+                                    _showFamilyMemberSelector(context, isDarkMode),
+                                icon: const Icon(Icons.people, size: 18),
+                                label: Text(
+                                  selectedFamilyMemberIds.isEmpty
+                                      ? 'Select Family Members'
+                                      : '${selectedFamilyMemberIds.length} member(s) selected',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.primary,
+                                  side: const BorderSide(color: AppColors.primary),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 30),
+
                   // Submit Button
                   SizedBox(
                     height: 50,
@@ -407,27 +659,6 @@ class _AddDosageState extends State<AddDosage> {
         ),
       ),
     );
-  }
-
-  Future<void> _addTime(BuildContext context) async {
-    final pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-
-    if (pickedTime != null) {
-      final formattedTime = pickedTime.format(context);
-      if (!selectedTimes.contains(formattedTime)) {
-        setState(() => selectedTimes.add(formattedTime));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('This time is already added'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    }
   }
 
   @override

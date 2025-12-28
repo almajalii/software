@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:meditrack/services/account_manager.dart';
 import 'package:meditrack/screens/auth/login_screen.dart';
-import 'package:meditrack/screens/main/navigation_main.dart';
+import 'package:meditrack/screens/main/home/navigation_main.dart';
 import 'package:meditrack/style/colors.dart';
 
 class AccountSwitcherScreen extends StatefulWidget {

@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:meditrack/screens/main/welcome_screen.dart';
+import 'package:meditrack/screens/main/home/welcome_screen.dart';
 import 'package:meditrack/widgets/ExpiryReminder.dart';
 import 'package:meditrack/widgets/app_bar.dart';
 import 'package:meditrack/screens/Medicine/display_medicine.dart';

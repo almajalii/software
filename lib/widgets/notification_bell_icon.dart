@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:meditrack/services/notification_service.dart';
-import 'package:meditrack/screens/main/notifications_screen.dart';
+import 'package:meditrack/screens/main/home/notifications_screen.dart';
 import 'package:meditrack/style/colors.dart';
 
 class NotificationBellIcon extends StatelessWidget {

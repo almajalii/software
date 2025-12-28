@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:meditrack/screens/auth/start_screen.dart';
-import 'package:meditrack/screens/main/edit_profile_screen.dart';
-import 'package:meditrack/screens/main/user_feedback_screen.dart';
+import 'package:meditrack/screens/main/settings/edit_profile_screen.dart';
+import 'package:meditrack/screens/main/settings/user_feedback_screen.dart';
 import 'package:meditrack/services/account_manager.dart';
 import 'package:meditrack/style/colors.dart';
 import 'package:meditrack/bloc/theme_bloc/theme_bloc.dart';
-import 'package:meditrack/screens/main/chat_support_screen.dart';
-import 'package:meditrack/screens/main/pharmacy_search_screen.dart';
+import 'package:meditrack/screens/main/settings/chat_support_screen.dart';
+import 'package:meditrack/screens/main/home/pharmacy_search_screen.dart';
 import 'package:meditrack/widgets/notification_bell_icon.dart';
 
 
@@ -660,38 +660,6 @@ Card(
     },
   ),
 ),
-// Pharmacy Search Card (Req12.0)
-Card(
-  elevation: 2,
-  margin: const EdgeInsets.symmetric(vertical: 8),
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(12),
-  ),
-  child: ListTile(
-    leading: Icon(
-      Icons.local_pharmacy,
-      color: AppColors.primary,
-      size: 28,
-    ),
-    title: const Text(
-      'Find Pharmacies',
-      style: TextStyle(fontWeight: FontWeight.bold),
-    ),
-    subtitle: const Text(
-      'Search nearby pharmacies',
-    ),
-    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const PharmacySearchScreen(),
-        ),
-      );
-    },
-  ),
-),
-
 
             // Data Export Card (Req15.0)
             Card(

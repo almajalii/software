@@ -14,9 +14,9 @@ import 'package:meditrack/services/image.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
-import '../../bloc/image/image_bloc.dart';
-import '../../bloc/image/image_event.dart';
-import '../../bloc/image/image_state.dart';
+import '../../bloc/image_bloc/image_bloc.dart';
+import '../../bloc/image_bloc/image_event.dart';
+import '../../bloc/image_bloc/image_state.dart';
 import '../../repository/medicine_constants.dart';
 import '../../widgets/MyDropDownField.dart';
 import '../../services/medicine_barcode_service.dart';

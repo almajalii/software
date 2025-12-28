@@ -11,8 +11,9 @@ import 'package:meditrack/bloc/family_bloc/family_bloc.dart';
 import 'package:meditrack/repository/medicine_repository.dart';
 import 'package:meditrack/repository/dosage_repository.dart';
 import 'package:meditrack/repository/family_repository.dart';
+import 'package:meditrack/services/family_dosage_notification_service.dart';
 
-import 'bloc/image/image_bloc.dart';
+import 'bloc/image_bloc/image_bloc.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -48,6 +49,8 @@ class MyApp extends StatelessWidget {
             create: (context) => DosageBloc(
               dosageRepository: context.read<DosageRepository>(),
               medicineRepository: context.read<MedicineRepository>(),
+              familyRepository: context.read<FamilyRepository>(), // ADD THIS
+              familyNotificationService: FamilyDosageNotificationService(), // ADD THIS
             ),
           ),
           BlocProvider<FamilyBloc>(

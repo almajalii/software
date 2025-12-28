@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:meditrack/screens/auth/login_screen.dart';
 import 'package:meditrack/screens/auth/signup_screen.dart';
-import 'package:meditrack/screens/main/navigation_main.dart';
+import 'package:meditrack/screens/main/home/navigation_main.dart';
 
 class StartScreen extends StatefulWidget {
   const StartScreen({super.key});
