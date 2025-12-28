@@ -63,11 +63,15 @@ class _DisplayMedicineState extends State<DisplayMedicine>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? Color(0xFF121212) : Colors.white,
+      backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.white,
       body: BlocBuilder<MedicineBloc, MedicineState>(
         builder: (context, state) {
           if (state is MedicineLoadingState) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(
+                color: AppColors.primary,
+              ),
+            );
           }
 
           if (state is MedicineErrorState) {
@@ -89,58 +93,78 @@ class _DisplayMedicineState extends State<DisplayMedicine>
 
             return Column(
               children: [
-                // Top bar with recycle bin
-                Align(
-                  alignment: Alignment.topRight,
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.recycling,
-                      color: isDarkMode ? Colors.grey[400] : Colors.black87,
-                    ),
-                    onPressed: () async {
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => RemovedMedicinesScreen(userId: userId),
-                        ),
-                      );
-                      context.read<MedicineBloc>().add(LoadMedicinesEvent(userId));
-                    },
-                  ),
-                ),
+                const SizedBox(height: 16),
 
-                // Search bar
+                // Search bar with Recycle Bin button
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: TextField(
-                    controller: searchController,
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.white : Colors.black,
-                    ),
-                    decoration: InputDecoration(
-                      prefixIcon: Icon(
-                        Icons.search,
-                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  child: Row(
+                    children: [
+                      // Search field
+                      Expanded(
+                        child: TextField(
+                          controller: searchController,
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white : Colors.black,
+                          ),
+                          decoration: InputDecoration(
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                            ),
+                            hintText: 'Search medicines...',
+                            hintStyle: TextStyle(
+                              color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: isDarkMode ? const Color(0xFF2C2C2C) : Colors.grey[200],
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 0,
+                              horizontal: 16,
+                            ),
+                          ),
+                          onChanged: (query) {
+                            setState(() {
+                              // Trigger rebuild which will apply filters
+                            });
+                          },
+                        ),
                       ),
-                      hintText: 'Search medicines...',
-                      hintStyle: TextStyle(
-                        color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+
+                      const SizedBox(width: 10),
+
+                      // Recycle Bin Button
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.grey[200],
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isDarkMode ? const Color(0xFF3C3C3C) : Colors.grey[300]!,
+                          ),
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+                          ),
+                          tooltip: 'Recycle Bin',
+                          onPressed: () async {
+                            await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => RemovedMedicinesScreen(userId: userId),
+                              ),
+                            );
+                            if (mounted) {
+                              context.read<MedicineBloc>().add(LoadMedicinesEvent(userId));
+                            }
+                          },
+                        ),
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: isDarkMode ? Color(0xFF2C2C2C) : Colors.grey[200],
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 0,
-                        horizontal: 16,
-                      ),
-                    ),
-                    onChanged: (query) {
-                      setState(() {
-                        // Trigger rebuild which will apply filters
-                      });
-                    },
+                    ],
                   ),
                 ),
 
@@ -154,18 +178,18 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                       // Type filter
                       Expanded(
                         child: PopupMenuButton<String>(
-                          color: isDarkMode ? Color(0xFF2C2C2C) : Colors.white,
+                          color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
                               color: selectedType != null
                                   ? AppColors.primary.withOpacity(0.2)
-                                  : (isDarkMode ? Color(0xFF2C2C2C) : Colors.grey[200]),
+                                  : (isDarkMode ? const Color(0xFF2C2C2C) : Colors.grey[200]),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: selectedType != null
                                     ? AppColors.primary
-                                    : (isDarkMode ? Color(0xFF3C3C3C) : Colors.grey[300]!),
+                                    : (isDarkMode ? const Color(0xFF3C3C3C) : Colors.grey[300]!),
                               ),
                             ),
                             child: Row(
@@ -193,7 +217,7 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                                 ),
                                 if (selectedType != null) const SizedBox(width: 4),
                                 if (selectedType != null)
-                                  Icon(Icons.close, size: 14, color: AppColors.primary),
+                                  const Icon(Icons.close, size: 14, color: AppColors.primary),
                               ],
                             ),
                           ),
@@ -231,28 +255,28 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                       // Category filter
                       Expanded(
                         child: PopupMenuButton<String>(
-                          color: isDarkMode ? Color(0xFF2C2C2C) : Colors.white,
+                          color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
                               color: selectedCategory != null
-                                  ? AppColors.teal.withOpacity(0.2)
-                                  : (isDarkMode ? Color(0xFF2C2C2C) : Colors.grey[200]),
+                                  ? AppColors.primary.withOpacity(0.2)
+                                  : (isDarkMode ? const Color(0xFF2C2C2C) : Colors.grey[200]),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: selectedCategory != null
-                                    ? AppColors.teal
-                                    : (isDarkMode ? Color(0xFF3C3C3C) : Colors.grey[300]!),
+                                    ? AppColors.primary
+                                    : (isDarkMode ? const Color(0xFF3C3C3C) : Colors.grey[300]!),
                               ),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
-                                  Icons.label,
+                                  Icons.medical_services,
                                   size: 18,
                                   color: selectedCategory != null
-                                      ? AppColors.teal
+                                      ? AppColors.primary
                                       : (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
                                 ),
                                 const SizedBox(width: 6),
@@ -262,7 +286,7 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: selectedCategory != null
-                                          ? AppColors.teal
+                                          ? AppColors.primary
                                           : (isDarkMode ? Colors.grey[400] : Colors.grey[700]),
                                     ),
                                     overflow: TextOverflow.ellipsis,
@@ -270,7 +294,7 @@ class _DisplayMedicineState extends State<DisplayMedicine>
                                 ),
                                 if (selectedCategory != null) const SizedBox(width: 4),
                                 if (selectedCategory != null)
-                                  Icon(Icons.close, size: 14, color: AppColors.teal),
+                                  const Icon(Icons.close, size: 14, color: AppColors.primary),
                               ],
                             ),
                           ),
@@ -386,7 +410,7 @@ class _DisplayMedicineState extends State<DisplayMedicine>
           );
         },
         backgroundColor: AppColors.primary,
-        child: Icon(Icons.add, color: AppColors.darkBlue),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

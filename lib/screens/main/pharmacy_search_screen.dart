@@ -14,7 +14,7 @@ class PharmacySearchScreen extends StatefulWidget {
 
 class _PharmacySearchScreenState extends State<PharmacySearchScreen> {
   final PharmacyService _pharmacyService = PharmacyService();
-  
+
   List<Pharmacy> _pharmacies = [];
   bool _isLoading = false;
   bool _isSearching = false;
@@ -28,6 +28,8 @@ class _PharmacySearchScreenState extends State<PharmacySearchScreen> {
   }
 
   Future<void> _searchNearbyPharmacies() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
       _isSearching = true;
@@ -37,8 +39,9 @@ class _PharmacySearchScreenState extends State<PharmacySearchScreen> {
     try {
       // Get current location
       final position = await _pharmacyService.getCurrentLocation();
-      
+
       if (position == null) {
+        if (!mounted) return;
         setState(() {
           _errorMessage = 'Unable to get your location. Please enable location services.';
           _isLoading = false;
@@ -56,6 +59,7 @@ class _PharmacySearchScreenState extends State<PharmacySearchScreen> {
         radius: 5000, // 5km
       );
 
+      if (!mounted) return;
       setState(() {
         _pharmacies = pharmacies;
         _isLoading = false;
@@ -65,6 +69,7 @@ class _PharmacySearchScreenState extends State<PharmacySearchScreen> {
         }
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'Error searching for pharmacies: $e';
         _isLoading = false;
@@ -82,53 +87,22 @@ class _PharmacySearchScreenState extends State<PharmacySearchScreen> {
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Could not open Google Maps'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
+          const SnackBar(
+            content: Text('Could not open Google Maps'),
             backgroundColor: Colors.red,
           ),
         );
       }
-    }
-  }
-
-  Future<void> _callPharmacy(String? phoneNumber) async {
-    if (phoneNumber == null || phoneNumber.isEmpty) {
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Phone number not available'),
-          backgroundColor: Colors.orange,
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
         ),
       );
-      return;
-    }
-
-    final url = Uri.parse('tel:$phoneNumber');
-    
-    try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
   }
 
@@ -137,32 +111,53 @@ class _PharmacySearchScreenState extends State<PharmacySearchScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.grey[100],
+      backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.white,
       appBar: AppBar(
         title: const Text('Nearby Pharmacies'),
         centerTitle: true,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
-            onPressed: _searchNearbyPharmacies,
             icon: const Icon(Icons.refresh),
+            onPressed: _isLoading ? null : _searchNearbyPharmacies,
             tooltip: 'Refresh',
           ),
         ],
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: RadialGradient(
-              colors: [Color(0xFF1A3A6B), Color(0xFF00B9E4)],
-            ),
-          ),
-        ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? _buildErrorWidget(isDarkMode)
-              : _pharmacies.isEmpty
-                  ? _buildEmptyWidget(isDarkMode)
-                  : _buildPharmacyList(isDarkMode),
+      body: _buildBody(isDarkMode),
+    );
+  }
+
+  Widget _buildBody(bool isDarkMode) {
+    if (_isLoading) {
+      return _buildLoadingWidget();
+    }
+
+    if (_errorMessage != null) {
+      return _buildErrorWidget(isDarkMode);
+    }
+
+    if (_pharmacies.isEmpty) {
+      return _buildEmptyWidget(isDarkMode);
+    }
+
+    return _buildPharmacyList(isDarkMode);
+  }
+
+  Widget _buildLoadingWidget() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            color: AppColors.primary,
+          ),
+          SizedBox(height: 16),
+          Text('Searching for nearby pharmacies...'),
+        ],
+      ),
     );
   }
 
@@ -174,11 +169,11 @@ class _PharmacySearchScreenState extends State<PharmacySearchScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.location_off,
+              Icons.error_outline,
               size: 80,
               color: Colors.red[300],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Text(
               _errorMessage ?? 'An error occurred',
               textAlign: TextAlign.center,
@@ -236,56 +231,13 @@ class _PharmacySearchScreenState extends State<PharmacySearchScreen> {
   }
 
   Widget _buildPharmacyList(bool isDarkMode) {
-    return Column(
-      children: [
-        // Location info banner
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          color: Colors.green[50],
-          child: Row(
-            children: [
-              Icon(Icons.location_on, color: Colors.green[700], size: 24),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Found ${_pharmacies.length} pharmacies nearby',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green[900],
-                      ),
-                    ),
-                    if (_currentPosition != null)
-                      Text(
-                        'Within 5km of your location',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.green[700],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Pharmacy list
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: _pharmacies.length,
-            itemBuilder: (context, index) {
-              final pharmacy = _pharmacies[index];
-              return _buildPharmacyCard(pharmacy, isDarkMode);
-            },
-          ),
-        ),
-      ],
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _pharmacies.length,
+      itemBuilder: (context, index) {
+        final pharmacy = _pharmacies[index];
+        return _buildPharmacyCard(pharmacy, isDarkMode);
+      },
     );
   }
 
@@ -391,39 +343,22 @@ class _PharmacySearchScreenState extends State<PharmacySearchScreen> {
 
             const SizedBox(height: 16),
 
-            // Action buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _openInMaps(pharmacy),
-                    icon: const Icon(Icons.directions, size: 18),
-                    label: const Text('Directions'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: BorderSide(color: AppColors.primary),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
+            // Action button - only Directions
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _openInMaps(pharmacy),
+                icon: const Icon(Icons.directions, size: 18),
+                label: const Text('Get Directions'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.primary),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _callPharmacy(pharmacy.phoneNumber),
-                    icon: const Icon(Icons.phone, size: 18),
-                    label: const Text('Call'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ],
         ),

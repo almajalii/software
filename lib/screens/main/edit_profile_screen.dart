@@ -62,8 +62,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => isSaving = true);
 
     try {
+      final newDisplayName = displayNameController.text.trim();
+
+      // 1. Update Firestore
       await _firestore.collection('users').doc(user!.uid).set({
-        'displayName': displayNameController.text.trim(),
+        'displayName': newDisplayName,
         'email': emailController.text.trim(),
         'phonenumber': phoneController.text.trim(),
         'allergies': allergiesController.text.trim(),
@@ -71,7 +74,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'emergencyContact': emergencyContactController.text.trim(),
       }, SetOptions(merge: true));
 
-      // Update saved account info
+      // 2. Update Firebase Auth displayName (THIS WAS MISSING!)
+      await user!.updateDisplayName(newDisplayName);
+
+      // 3. Reload user to get updated info
+      await user!.reload();
+
+      // 4. Update local user reference
+      setState(() {
+        user = _auth.currentUser;
+      });
+
+      // 5. Update saved account info
       await _accountManager.saveCurrentAccount();
 
       if (mounted) {
@@ -87,6 +101,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
+      print('Error saving profile: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -365,7 +380,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(
-              color: Color(0xFF00B9E4),
+              color: AppColors.primary,
               width: 2,
             ),
           ),

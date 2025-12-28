@@ -20,10 +20,10 @@ class AddDosage extends StatefulWidget {
 
 class _AddDosageState extends State<AddDosage> {
   final GlobalKey<FormState> formKey = GlobalKey();
-  final TextEditingController MedDosage = TextEditingController();
-  final TextEditingController MedFrequency = TextEditingController();
-  final TextEditingController StartDateController = TextEditingController();
-  final TextEditingController EndDateController = TextEditingController();
+  final TextEditingController medDosage = TextEditingController();
+  final TextEditingController medFrequency = TextEditingController();
+  final TextEditingController startDateController = TextEditingController();
+  final TextEditingController endDateController = TextEditingController();
   final MyTextField myTextField = MyTextField();
   final User? userCredential = FirebaseAuth.instance.currentUser;
 
@@ -35,29 +35,28 @@ class _AddDosageState extends State<AddDosage> {
     if (!formKey.currentState!.validate() ||
         selectedMedicine == null ||
         selectedTimes.isEmpty ||
-        StartDateController.text.isEmpty ||
-        (hasEndDate && EndDateController.text.isEmpty)) {
+        startDateController.text.isEmpty ||
+        (hasEndDate && endDateController.text.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
             "Please fill all required fields and add at least one time",
           ),
+          backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
     final dosageData = {
-      'dosage': MedDosage.text.trim(),
-      'frequency': MedFrequency.text.trim(),
-      'times':
-      selectedTimes
+      'dosage': medDosage.text.trim(),
+      'frequency': medFrequency.text.trim(),
+      'times': selectedTimes
           .map((t) => {'time': t, 'taken': false, 'takenDate': null})
           .toList(),
-      'startDate': Timestamp.fromDate(DateTime.parse(StartDateController.text)),
-      'endDate':
-      hasEndDate
-          ? Timestamp.fromDate(DateTime.parse(EndDateController.text))
+      'startDate': Timestamp.fromDate(DateTime.parse(startDateController.text)),
+      'endDate': hasEndDate
+          ? Timestamp.fromDate(DateTime.parse(endDateController.text))
           : null,
       'addedAt': Timestamp.fromDate(DateTime.now()),
       'medicineId': selectedMedicine!.id,
@@ -72,9 +71,12 @@ class _AddDosageState extends State<AddDosage> {
       ),
     );
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Dosage added successfully!")));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("✓ Dosage added successfully!"),
+        backgroundColor: Colors.green,
+      ),
+    );
 
     Navigator.of(context).pop();
   }
@@ -84,7 +86,7 @@ class _AddDosageState extends State<AddDosage> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? Color(0xFF121212) : Colors.white,
+      backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.white,
       appBar: MyAppBar.build(context, () {}),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -94,36 +96,53 @@ class _AddDosageState extends State<AddDosage> {
               child: Column(
                 children: [
                   const SizedBox(height: 20),
+
+                  // Pill icon
                   const Icon(
                     FontAwesomeIcons.pills,
                     color: AppColors.primary,
                     size: 80,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
+
+                  Text(
+                    'Add Dosage Schedule',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? Colors.grey[200] : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
 
                   // Medicine Dropdown
                   BlocBuilder<MedicineBloc, MedicineState>(
                     builder: (context, state) {
                       if (state is MedicineLoadingState) {
-                        return const CircularProgressIndicator();
+                        return const CircularProgressIndicator(
+                          color: AppColors.primary,
+                        );
                       } else if (state is MedicineLoadedState) {
                         return SizedBox(
                           width: 300,
                           child: DropdownButtonFormField<Medicine>(
                             value: selectedMedicine,
-                            dropdownColor: isDarkMode ? Color(0xFF2C2C2C) : Colors.white,
+                            dropdownColor: isDarkMode
+                                ? const Color(0xFF2C2C2C)
+                                : Colors.white,
                             style: TextStyle(
                               color: isDarkMode ? Colors.white : Colors.black,
                             ),
-                            items:
-                            state.medicines
+                            items: state.medicines
                                 .map(
                                   (med) => DropdownMenuItem(
                                 value: med,
                                 child: Text(
                                   med.name,
                                   style: TextStyle(
-                                    color: isDarkMode ? Colors.white : Colors.black,
+                                    color: isDarkMode
+                                        ? Colors.white
+                                        : Colors.black,
                                   ),
                                 ),
                               ),
@@ -146,22 +165,28 @@ class _AddDosageState extends State<AddDosage> {
                             decoration: InputDecoration(
                               labelText: "Select Medicine",
                               labelStyle: TextStyle(
-                                color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+                                color: isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[700],
                               ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              fillColor: isDarkMode ? Color(0xFF2C2C2C) : AppColors.lightGray,
+                              fillColor: isDarkMode
+                                  ? const Color(0xFF2C2C2C)
+                                  : AppColors.lightGray,
                               filled: true,
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(
-                                  color: isDarkMode ? Color(0xFF3C3C3C) : Color(0xFFC8D1DC),
+                                  color: isDarkMode
+                                      ? const Color(0xFF3C3C3C)
+                                      : const Color(0xFFC8D1DC),
                                 ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
+                                borderSide: const BorderSide(
                                   color: AppColors.primary,
                                   width: 2,
                                 ),
@@ -169,7 +194,9 @@ class _AddDosageState extends State<AddDosage> {
                             ),
                             icon: Icon(
                               Icons.arrow_drop_down,
-                              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                              color: isDarkMode
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
                             ),
                           ),
                         );
@@ -179,39 +206,43 @@ class _AddDosageState extends State<AddDosage> {
                   ),
 
                   const SizedBox(height: 20),
+
                   // Dosage
                   SizedBox(
                     width: 300,
                     child: myTextField.buildTextField(
-                      "Dosage",
-                      MedDosage,
+                      "Dosage (e.g., 500mg, 2 tablets)",
+                      medDosage,
                       validator: (value) => value!.isEmpty ? "*" : null,
                     ),
                   ),
                   const SizedBox(height: 20),
+
                   // Frequency
                   SizedBox(
                     width: 300,
                     child: myTextField.buildTextField(
-                      "Frequency",
-                      MedFrequency,
+                      "Frequency (e.g., 3x daily, Twice a day)",
+                      medFrequency,
                       validator: (value) => value!.isEmpty ? "*" : null,
                     ),
                   ),
                   const SizedBox(height: 20),
+
                   // Start Date
                   SizedBox(
                     width: 300,
                     child: ExpiryDatePicker(
-                      controller: StartDateController,
+                      controller: startDateController,
                       labelText: "Start Date",
                       onDateChanged: (date) {
-                        StartDateController.text =
+                        startDateController.text =
                         "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
                       },
                     ),
                   ),
                   const SizedBox(height: 20),
+
                   // End Date Checkbox
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -224,61 +255,151 @@ class _AddDosageState extends State<AddDosage> {
                       Text(
                         "Has End Date?",
                         style: TextStyle(
-                          color: isDarkMode ? Colors.grey[300] : Colors.black87,
+                          color: isDarkMode
+                              ? Colors.grey[300]
+                              : Colors.black87,
                         ),
                       ),
                     ],
                   ),
+
                   if (hasEndDate)
                     SizedBox(
                       width: 300,
                       child: ExpiryDatePicker(
-                        controller: EndDateController,
+                        controller: endDateController,
                         labelText: "End Date",
                         onDateChanged: (date) {
-                          EndDateController.text =
+                          endDateController.text =
                           "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
                         },
                       ),
                     ),
-                  const SizedBox(height: 20),
-                  // Time Picker
-                  SizedBox(width: 150, child: TimePicker(context, isDarkMode)),
-                  const SizedBox(height: 10),
-                  // Show selected times
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children:
-                    selectedTimes
-                        .map(
-                          (t) => Chip(
-                        label: Text(
-                          t,
-                          style: TextStyle(
-                            color: isDarkMode ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                        backgroundColor: isDarkMode ? Color(0xFF3C3C3C) : Colors.grey[300],
-                        deleteIconColor: isDarkMode ? Colors.grey[400] : Colors.black54,
-                        onDeleted:
-                            () =>
-                            setState(() => selectedTimes.remove(t)),
-                      ),
-                    )
-                        .toList(),
+
+                  const SizedBox(height: 30),
+
+                  // Times section title
+                  Text(
+                    'Times',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? Colors.grey[300] : Colors.black87,
+                    ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
+
+                  // Time Picker Button - Smaller and styled
+                  OutlinedButton.icon(
+                    onPressed: () => _addTime(context),
+                    icon: const Icon(Icons.access_time, size: 18),
+                    label: const Text('Add Time'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(color: AppColors.primary),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Selected times - SMALLER CHIPS
+                  if (selectedTimes.isNotEmpty)
+                    Container(
+                      width: 300,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDarkMode
+                            ? const Color(0xFF2C2C2C)
+                            : Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDarkMode
+                              ? const Color(0xFF3C3C3C)
+                              : Colors.grey[300]!,
+                        ),
+                      ),
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: selectedTimes.map((time) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: AppColors.primary,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.schedule,
+                                  size: 14,
+                                  color: AppColors.primary,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  time,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                InkWell(
+                                  onTap: () {
+                                    setState(() => selectedTimes.remove(time));
+                                  },
+                                  child: const Icon(
+                                    Icons.close,
+                                    size: 14,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+
+                  const SizedBox(height: 30),
+
                   // Submit Button
                   SizedBox(
                     height: 50,
                     width: 300,
                     child: ElevatedButton(
                       onPressed: submitDosage,
-                      child: const Text("Add Dosage"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        "Add Dosage",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 30),
                 ],
               ),
             ),
@@ -288,25 +409,33 @@ class _AddDosageState extends State<AddDosage> {
     );
   }
 
-  ElevatedButton TimePicker(BuildContext context, bool isDarkMode) {
-    return ElevatedButton(
-      onPressed: () async {
-        final pickedTime = await showTimePicker(
-          context: context,
-          initialTime: TimeOfDay.now(),
-        );
-        if (pickedTime != null) {
-          final formattedTime = pickedTime.format(context);
-          if (!selectedTimes.contains(formattedTime)) {
-            setState(() => selectedTimes.add(formattedTime));
-          }
-        }
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isDarkMode ? Color(0xFF3C3C3C) : AppColors.primary,
-        foregroundColor: isDarkMode ? Colors.grey[300] : AppColors.darkBlue,
-      ),
-      child: const Text("+ Time"),
+  Future<void> _addTime(BuildContext context) async {
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
     );
+
+    if (pickedTime != null) {
+      final formattedTime = pickedTime.format(context);
+      if (!selectedTimes.contains(formattedTime)) {
+        setState(() => selectedTimes.add(formattedTime));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This time is already added'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    medDosage.dispose();
+    medFrequency.dispose();
+    startDateController.dispose();
+    endDateController.dispose();
+    super.dispose();
   }
 }

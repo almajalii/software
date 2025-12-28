@@ -31,6 +31,8 @@ dependencies:
   pdf: ^3.10.7
   geolocator: ^10.1.0
   http: ^1.1.0
+  mobile_scanner: ^5.2.3              # Barcode scanning
+  google_mlkit_text_recognition: ^0.13.1  # OCR (text extraction)
 
 dev_dependencies:
   flutter_lints: ^5.0.0
