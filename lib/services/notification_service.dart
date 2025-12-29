@@ -4,21 +4,26 @@ import 'package:meditrack/model/app_notification.dart';
 class NotificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Get notifications stream for a user
+  // Get user notifications stream (FIXED: no composite index needed)
   Stream<List<AppNotification>> getUserNotifications(String userId) {
     return _firestore
         .collection('notifications')
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return AppNotification.fromFirestore(doc.id, doc.data());
-      }).toList();
-    });
+          final notifications = snapshot.docs
+              .map((doc) => AppNotification.fromFirestore(doc.id, doc.data()))
+              .toList();
+          
+          // Sort in memory instead of using orderBy to avoid composite index
+          notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          
+          // Limit to 50 most recent
+          return notifications.take(50).toList();
+        });
   }
 
-  // Get unread count
+  // Get unread count (FIXED: simplified query)
   Stream<int> getUnreadCount(String userId) {
     return _firestore
         .collection('notifications')
@@ -28,7 +33,7 @@ class NotificationService {
         .map((snapshot) => snapshot.docs.length);
   }
 
-  // Create a new notification
+  // Create a notification
   Future<void> createNotification({
     required String userId,
     required String title,
@@ -60,7 +65,7 @@ class NotificationService {
   // Mark all notifications as read
   Future<void> markAllAsRead(String userId) async {
     final batch = _firestore.batch();
-    
+
     final notifications = await _firestore
         .collection('notifications')
         .where('userId', isEqualTo: userId)
@@ -82,7 +87,7 @@ class NotificationService {
   // Delete all notifications for a user
   Future<void> deleteAllNotifications(String userId) async {
     final batch = _firestore.batch();
-    
+
     final notifications = await _firestore
         .collection('notifications')
         .where('userId', isEqualTo: userId)
@@ -95,12 +100,123 @@ class NotificationService {
     await batch.commit();
   }
 
+  // ==================== AUTOMATIC NOTIFICATIONS ====================
+
+  // Send medicine expiry notifications (call this daily via a scheduled task)
+  Future<void> checkAndNotifyExpiringMedicines(String userId) async {
+    try {
+      // Get all medicines for this user
+      final medicines = await _firestore
+          .collection('medicines')
+          .where('userId', isEqualTo: userId)
+          .get();
+
+      final now = DateTime.now();
+
+      for (var medicineDoc in medicines.docs) {
+        final data = medicineDoc.data();
+        final expiredDate = (data['dateExpired'] as Timestamp?)?.toDate();
+        final medicineName = data['name'] ?? 'Unknown';
+
+        if (expiredDate != null) {
+          final daysUntilExpiry = expiredDate.difference(now).inDays;
+
+          // Notify if medicine expires in 7 days or less
+          if (daysUntilExpiry <= 7 && daysUntilExpiry >= 0) {
+            await createNotification(
+              userId: userId,
+              title: '⚠️ Medicine Expiring Soon',
+              message: '$medicineName will expire in $daysUntilExpiry day${daysUntilExpiry == 1 ? '' : 's'}.',
+              type: NotificationType.medicineExpiry,
+              data: {'medicineId': medicineDoc.id, 'medicineName': medicineName},
+            );
+          }
+          // Notify if medicine is already expired
+          else if (daysUntilExpiry < 0) {
+            await createNotification(
+              userId: userId,
+              title: '🚫 Medicine Expired',
+              message: '$medicineName has expired. Please dispose of it safely.',
+              type: NotificationType.medicineExpiry,
+              data: {'medicineId': medicineDoc.id, 'medicineName': medicineName},
+            );
+          }
+        }
+      }
+    } catch (e) {
+      print('Error checking expiring medicines: $e');
+    }
+  }
+
+  // Send dosage reminder notification
+  Future<void> sendDosageReminder({
+    required String userId,
+    required String medicineName,
+    required String dosage,
+    required String time,
+  }) async {
+    await createNotification(
+      userId: userId,
+      title: '💊 Time to Take Your Medicine',
+      message: 'Don\'t forget to take $dosage of $medicineName at $time',
+      type: NotificationType.dosageReminder,
+      data: {
+        'medicineName': medicineName,
+        'dosage': dosage,
+        'time': time,
+      },
+    );
+  }
+
+  // Send family member joined notification
+  Future<void> notifyFamilyMemberJoined({
+    required String userId,
+    required String memberName,
+    required String familyName,
+  }) async {
+    await createNotification(
+      userId: userId,
+      title: '👨‍👩‍👧‍👦 New Family Member',
+      message: '$memberName has joined $familyName family account.',
+      type: NotificationType.familyUpdate,
+    );
+  }
+
+  // Send family invitation notification
+  Future<void> notifyFamilyInvitation({
+    required String userId,
+    required String inviterName,
+    required String familyName,
+  }) async {
+    await createNotification(
+      userId: userId,
+      title: '📨 Family Invitation',
+      message: '$inviterName invited you to join $familyName family account.',
+      type: NotificationType.familyUpdate,
+    );
+  }
+
+  // Send low stock notification
+  Future<void> notifyLowStock({
+    required String userId,
+    required String medicineName,
+    required int quantity,
+  }) async {
+    await createNotification(
+      userId: userId,
+      title: '📦 Low Medicine Stock',
+      message: 'Only $quantity unit${quantity == 1 ? '' : 's'} of $medicineName remaining.',
+      type: NotificationType.general,
+      data: {'medicineName': medicineName, 'quantity': quantity},
+    );
+  }
+
   // Create sample notifications for testing
   Future<void> createSampleNotifications(String userId) async {
     // Medicine expiry notification
     await createNotification(
       userId: userId,
-      title: 'Medicine Expiring Soon',
+      title: '⚠️ Medicine Expiring Soon',
       message: 'Your Aspirin will expire in 3 days. Please check your medicine cabinet.',
       type: NotificationType.medicineExpiry,
       data: {'medicineId': 'sample_medicine_id'},
@@ -109,8 +225,8 @@ class NotificationService {
     // Dosage reminder
     await createNotification(
       userId: userId,
-      title: 'Time to Take Your Medicine',
-      message: 'Don\'t forget to take your evening dose of Paracetamol.',
+      title: '💊 Time to Take Your Medicine',
+      message: 'Don\'t forget to take your evening dose of Paracetamol (500mg).',
       type: NotificationType.dosageReminder,
       data: {'dosageId': 'sample_dosage_id'},
     );
@@ -118,16 +234,24 @@ class NotificationService {
     // Family update
     await createNotification(
       userId: userId,
-      title: 'Family Account Update',
-      message: 'You have been added to the Johnson Family account.',
+      title: '👨‍👩‍👧‍👦 Family Account Update',
+      message: 'Sarah has joined your family account.',
       type: NotificationType.familyUpdate,
+    );
+
+    // Low stock warning
+    await createNotification(
+      userId: userId,
+      title: '📦 Low Medicine Stock',
+      message: 'Only 2 units of Ibuprofen remaining. Time to restock!',
+      type: NotificationType.general,
     );
 
     // App update
     await createNotification(
       userId: userId,
-      title: 'New Feature Available',
-      message: 'Check out the new Pharmacy Search feature!',
+      title: '🔔 New Feature Available',
+      message: 'Check out the new Pharmacy Search feature to find nearby pharmacies!',
       type: NotificationType.appUpdate,
     );
   }

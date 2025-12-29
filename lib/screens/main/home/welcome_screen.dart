@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:meditrack/bloc/medicine_bloc/medicine_bloc.dart';
 import 'package:meditrack/bloc/dosage_bloc/dosage_bloc.dart';
 import 'package:meditrack/bloc/family_bloc/family_bloc.dart';
@@ -31,7 +32,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Reload family data when returning to this screen
     if (user != null) {
       context.read<FamilyBloc>().add(LoadFamilyAccountEvent(user!.uid));
     }
@@ -54,7 +54,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    super.build(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     if (user == null) {
@@ -75,9 +75,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
                   TextSpan(
                     text: '${getGreeting()}, ',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: isDarkMode
-                          ? Colors.grey[300]
-                          : AppColors.darkBlue,
+                      color: isDarkMode ? Colors.grey.shade300 : AppColors.darkBlue,
                     ),
                   ),
                   TextSpan(
@@ -97,32 +95,28 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
               children: [
                 Icon(
                   Icons.medication,
-                  color: isDarkMode
-                      ? AppColors.primary.withOpacity(0.8)
-                      : AppColors.primary,
+                  color: isDarkMode ? AppColors.primary.withOpacity(0.8) : AppColors.primary,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   'Medicines To Take Today:',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.grey[300] : Colors.black87,
+                    color: isDarkMode ? Colors.grey.shade300 : Colors.black87,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
 
-            // OLD SIMPLE DOSAGE CARDS - THE WAY IT WAS BEFORE!
+            // Dosage Cards
             BlocBuilder<MedicineBloc, MedicineState>(
               builder: (context, medState) {
                 if (medState is MedicineLoadingState) {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(20),
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
+                      child: CircularProgressIndicator(color: AppColors.primary),
                     ),
                   );
                 }
@@ -134,8 +128,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
                       child: Text(
                         medState.errorMessage,
                         style: TextStyle(
-                          color:
-                          isDarkMode ? Colors.grey[400] : Colors.black87,
+                          color: isDarkMode ? Colors.grey.shade400 : Colors.black87,
                         ),
                       ),
                     ),
@@ -152,20 +145,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
                         child: Text(
                           'No medicines found',
                           style: TextStyle(
-                            color:
-                            isDarkMode ? Colors.grey[400] : Colors.black87,
+                            color: isDarkMode ? Colors.grey.shade400 : Colors.black87,
                           ),
                         ),
                       ),
                     );
                   }
 
-                  // Load all dosages after medicines load
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     for (var med in medicines) {
-                      context
-                          .read<DosageBloc>()
-                          .add(LoadDosagesEvent(user!.uid, med.id));
+                      context.read<DosageBloc>().add(LoadDosagesEvent(user!.uid, med.id));
                     }
                   });
 
@@ -175,9 +164,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
                         return const Center(
                           child: Padding(
                             padding: EdgeInsets.all(20),
-                            child: CircularProgressIndicator(
-                              color: AppColors.primary,
-                            ),
+                            child: CircularProgressIndicator(color: AppColors.primary),
                           ),
                         );
                       }
@@ -189,9 +176,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
                             child: Text(
                               dosageState.errorMessage,
                               style: TextStyle(
-                                color: isDarkMode
-                                    ? Colors.grey[400]
-                                    : Colors.black87,
+                                color: isDarkMode ? Colors.grey.shade400 : Colors.black87,
                               ),
                             ),
                           ),
@@ -201,46 +186,33 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
                       if (dosageState is DosageLoadedState) {
                         final allByMed = dosageState.dosagesByMedicine;
                         final today = DateTime.now();
-
-                        // Build dosage cards
                         final dosageWidgets = <Widget>[];
 
                         for (var med in medicines) {
                           final medDosages = allByMed[med.id] ?? [];
-
                           final todayDosages = medDosages.where((d) {
                             final start = d.startDate;
                             final end = d.endDate;
-                            return !start.isAfter(today) &&
-                                (end == null || !end.isBefore(today));
+                            return !start.isAfter(today) && (end == null || !end.isBefore(today));
                           }).toList();
 
                           if (todayDosages.isEmpty) continue;
 
-                          // Medicine name header
                           dosageWidgets.add(
                             Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 4, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                               child: Text(
                                 med.name.toUpperCase(),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(
-                                  color: isDarkMode
-                                      ? Colors.grey[300]
-                                      : AppColors.darkBlue,
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: isDarkMode ? Colors.grey.shade300 : AppColors.darkBlue,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
                           );
 
-                          // OLD SIMPLE DOSAGE CARDS
                           for (var dosage in todayDosages) {
-                            dosageWidgets
-                                .add(_buildDosageCard(med.id, dosage, isDarkMode));
+                            dosageWidgets.add(_buildDosageCard(med.id, dosage, isDarkMode));
                           }
                         }
 
@@ -253,17 +225,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
                                   Icon(
                                     Icons.calendar_today_outlined,
                                     size: 48,
-                                    color: isDarkMode
-                                        ? Colors.grey[600]
-                                        : Colors.grey[400],
+                                    color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade400,
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
                                     'No dosages scheduled for today',
                                     style: TextStyle(
-                                      color: isDarkMode
-                                          ? Colors.grey[500]
-                                          : Colors.grey[600],
+                                      color: isDarkMode ? Colors.grey.shade500 : Colors.grey.shade600,
                                     ),
                                   ),
                                 ],
@@ -289,12 +257,146 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
 
             const SizedBox(height: 30),
 
-            // Section 2: Family Members
+            // Section 2: EXPIRED MEDICINES
+            BlocBuilder<MedicineBloc, MedicineState>(
+              builder: (context, medState) {
+                if (medState is MedicineLoadedState) {
+                  final now = DateTime.now();
+                  final expiredMedicines = medState.medicines
+                      .where((med) => med.dateExpired.isBefore(now))
+                      .toList();
+
+                  if (expiredMedicines.isNotEmpty) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.red.shade700,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Expired Medicines:',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.red.withOpacity(0.1),
+                                Colors.orange.withOpacity(0.05),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.red.withOpacity(0.3),
+                              width: 2,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withOpacity(0.15),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      '${expiredMedicines.length}',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.red.shade700,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      expiredMedicines.length == 1
+                                          ? 'medicine has expired'
+                                          : 'medicines have expired',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDarkMode ? Colors.grey.shade300 : Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              ...expiredMedicines.map((medicine) {
+                                final daysExpired = now.difference(medicine.dateExpired).inDays;
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.red.withOpacity(0.3)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.medication, color: Colors.red.shade600, size: 20),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              medicine.name,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15,
+                                                color: isDarkMode ? Colors.grey.shade300 : Colors.black87,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Expired $daysExpired day${daysExpired == 1 ? '' : 's'} ago',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.red.shade700,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+                      ],
+                    );
+                  }
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+
+            // Section 3: Family Members
             const FamilyMembersWidget(),
 
             const SizedBox(height: 30),
 
-            // Section 3: Nearby Pharmacies
+            // Section 4: Nearby Pharmacies
             const NearbyPharmaciesWidget(),
 
             const SizedBox(height: 20),
@@ -304,7 +406,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
     );
   }
 
-  // OLD SIMPLE DOSAGE CARD - THE WAY IT WAS BEFORE!
   Widget _buildDosageCard(String medId, Dosage dosage, bool isDarkMode) {
     final today = DateTime.now();
 
@@ -321,11 +422,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
             Text(
               'Dosage: ${dosage.dosage}, Frequency: ${dosage.frequency}',
               style: TextStyle(
-                color: isDarkMode ? Colors.grey[300] : Colors.black87,
+                color: isDarkMode ? Colors.grey.shade300 : Colors.black87,
               ),
             ),
             const SizedBox(height: 10),
-
             ...List.generate(dosage.times.length, (index) {
               final timeData = dosage.times[index];
               final time = timeData['time'];
@@ -333,7 +433,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
               DateTime? takenDate;
               final raw = timeData['takenDate'];
               if (raw != null) {
-                takenDate = raw is DateTime ? raw : raw.toDate();
+                takenDate = raw is DateTime ? raw : (raw as Timestamp).toDate();
               }
 
               final isTakenToday = takenDate != null &&
@@ -341,44 +441,58 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
                   takenDate.month == today.month &&
                   takenDate.day == today.day;
 
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Time: $time",
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.grey[400] : Colors.black87,
-                    ),
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isTakenToday
+                      ? Colors.green.withOpacity(0.1)
+                      : (isDarkMode ? const Color(0xFF2C2C2C) : Colors.grey.shade100),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isTakenToday
+                        ? Colors.green
+                        : (isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300),
                   ),
-                  TextButton.icon(
-                    icon: Icon(
-                      isTakenToday
-                          ? Icons.check_circle
-                          : Icons.radio_button_unchecked,
-                      color: isTakenToday
-                          ? Colors.green
-                          : (isDarkMode ? Colors.grey[600] : Colors.grey),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isTakenToday ? Icons.check_circle : Icons.access_time,
+                      color: isTakenToday ? Colors.green : AppColors.primary,
+                      size: 20,
                     ),
-                    label: Text(
-                      isTakenToday ? "Taken" : "Mark as Taken",
-                      style: TextStyle(
-                        color: isTakenToday
-                            ? Colors.green
-                            : (isDarkMode ? Colors.grey[400] : Colors.black87),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        time,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isDarkMode ? Colors.grey.shade300 : Colors.black87,
+                        ),
                       ),
                     ),
-                    onPressed: isTakenToday
-                        ? null
-                        : () {
-                      context.read<DosageBloc>().add(
-                        MarkDosageTimeTakenEvent(
-                            user!.uid, medId, dosage.id, index),
-                      );
-                    },
-                  ),
-                ],
+                    if (isTakenToday)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'Taken',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               );
-            }),
+            }).toList(),
           ],
         ),
       ),

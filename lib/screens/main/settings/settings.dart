@@ -11,12 +11,6 @@ import 'package:meditrack/style/colors.dart';
 import 'package:meditrack/bloc/theme_bloc/theme_bloc.dart';
 import 'package:meditrack/screens/main/settings/chat_support_screen.dart';
 import 'package:meditrack/screens/main/home/pharmacy_search_screen.dart';
-import 'package:meditrack/widgets/notification_bell_icon.dart';
-
-
-
-
-
 import 'account_switcher.dart';
 import 'data_export.dart';
 
@@ -56,11 +50,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: const Text('Are you sure you want to log out?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Log Out'),
           ),
         ],
@@ -68,99 +63,91 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (shouldLogout == true) {
-      // Save current account before logging out
-      await _accountManager.saveCurrentAccount();
-
       await _auth.signOut();
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const StartScreen()),
-            (Route<dynamic> route) => false,
-      );
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const StartScreen()),
+          (route) => false,
+        );
+      }
     }
   }
 
   void openEditProfile() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const EditProfileScreen(),
-      ),
-    );
-  }
-
-  void openUserFeedback() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const UserFeedbackScreen(),
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const EditProfileScreen()),
     );
   }
 
   void openDataExport() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const DataExportScreen(),
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const DataExportScreen()),
     );
   }
 
   void openAccountSwitcher() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const AccountSwitcherScreen(),
-      ),
-    ).then((_) {
-      _loadSavedAccountsCount();
-    });
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AccountSwitcherScreen()),
+    ).then((_) => _loadSavedAccountsCount());
   }
 
-  void openContactUsDialog() {
+  void openFeedback() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const UserFeedbackScreen()),
+    );
+  }
+
+  void openPharmacySearch() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const PharmacySearchScreen()),
+    );
+  }
+
+  void _showContactDialog() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     showDialog(
       context: context,
       builder: (context) {
-        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
         return AlertDialog(
           backgroundColor: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
           title: Row(
             children: [
               Icon(Icons.contact_support, color: AppColors.primary),
-              const SizedBox(width: 8),
-              Text(
-                'Contact Us',
-                style: TextStyle(
-                  color: isDarkMode ? Colors.grey[300] : Colors.black87,
-                ),
-              ),
+              const SizedBox(width: 12),
+              const Text('Contact Us'),
             ],
           ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Get in touch with our support team',
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Email Button
                 _buildContactButton(
                   context: context,
                   isDarkMode: isDarkMode,
                   icon: Icons.email,
                   title: 'Email Support',
                   subtitle: 'support@meditrack.com',
-                  onTap: () => _launchEmail(),
+                  onTap: _launchEmail,
                 ),
-
                 const SizedBox(height: 12),
-
-                // Social Media Section
+                _buildContactButton(
+                  context: context,
+                  isDarkMode: isDarkMode,
+                  icon: Icons.phone,
+                  title: 'Phone Support',
+                  subtitle: '+1 (555) 123-4567',
+                  onTap: () {},
+                ),
+                const SizedBox(height: 20),
                 Text(
-                  'Follow us on social media',
+                  'Follow Us',
                   style: TextStyle(
                     color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                     fontSize: 13,
@@ -168,8 +155,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-
-                // Social Media Buttons Row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -239,7 +224,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                shape: BoxShape.circle,
               ),
               child: Icon(icon, color: AppColors.primary),
             ),
@@ -252,6 +237,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
+                      fontSize: 15,
                       color: isDarkMode ? Colors.grey[300] : Colors.black87,
                     ),
                   ),
@@ -289,23 +275,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
         child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(height: 6),
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
+                color: color,
                 fontSize: 11,
-                color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -392,7 +377,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         centerTitle: true,
         actions: [
-          const NotificationBellIcon(),
           IconButton(
             onPressed: logout,
             icon: const Icon(Icons.logout),
@@ -462,7 +446,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 24),
 
-            // NEW: Edit Profile Card (FIRST OPTION)
+            // Edit Profile Card
             Card(
               elevation: 2,
               margin: const EdgeInsets.symmetric(vertical: 8),
@@ -511,9 +495,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       context.read<ThemeBloc>().add(ToggleThemeEvent());
                     },
                     secondary: Icon(
-                      themeState.isDarkMode
-                          ? Icons.dark_mode
-                          : Icons.light_mode,
+                      themeState.isDarkMode ? Icons.dark_mode : Icons.light_mode,
                       color: AppColors.primary,
                     ),
                     activeColor: AppColors.primary,
@@ -572,14 +554,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: Text(
                   savedAccountsCount > 1
                       ? '$savedAccountsCount accounts saved'
-                      : 'Manage multiple accounts',
+                      : 'Manage your accounts',
                 ),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 onTap: openAccountSwitcher,
               ),
             ),
 
-            // Contact Us Card
+            // Pharmacy Search Card
             Card(
               elevation: 2,
               margin: const EdgeInsets.symmetric(vertical: 8),
@@ -588,23 +570,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               child: ListTile(
                 leading: Icon(
-                  Icons.contact_support,
+                  Icons.local_pharmacy,
                   color: AppColors.primary,
                   size: 28,
                 ),
                 title: const Text(
-                  'Contact Us',
+                  'Find Nearby Pharmacies',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 subtitle: const Text(
-                  'Email support & social media',
+                  'Search for pharmacies near you',
                 ),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: openContactUsDialog,
+                onTap: openPharmacySearch,
               ),
             ),
 
-            // User Feedback Card (Req16.0)
+            // Chat Support Card
             Card(
               elevation: 2,
               margin: const EdgeInsets.symmetric(vertical: 8),
@@ -613,55 +595,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               child: ListTile(
                 leading: Icon(
-                  Icons.feedback,
+                  Icons.chat_bubble_outline,
                   color: AppColors.primary,
                   size: 28,
                 ),
                 title: const Text(
-                  'Submit Feedback',
+                  'Chat Support',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 subtitle: const Text(
-                  'Report bugs & suggest features',
+                  'Live chat with customer service',
                 ),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: openUserFeedback,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ChatSupportScreen(),
+                    ),
+                  );
+                },
               ),
             ),
-            // Chat Support Option
-            // Chat Support Card (Req13.0)
-Card(
-  elevation: 2,
-  margin: const EdgeInsets.symmetric(vertical: 8),
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(12),
-  ),
-  child: ListTile(
-    leading: Icon(
-      Icons.chat_bubble_outline,
-      color: AppColors.primary,
-      size: 28,
-    ),
-    title: const Text(
-      'Chat Support',
-      style: TextStyle(fontWeight: FontWeight.bold),
-    ),
-    subtitle: const Text(
-      'Live chat with customer service',
-    ),
-    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const ChatSupportScreen(),
-        ),
-      );
-    },
-  ),
-),
 
-            // Data Export Card (Req15.0)
+            // Data Export Card
             Card(
               elevation: 2,
               margin: const EdgeInsets.symmetric(vertical: 8),
@@ -683,6 +640,56 @@ Card(
                 ),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 onTap: openDataExport,
+              ),
+            ),
+
+            // Feedback Card
+            Card(
+              elevation: 2,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ListTile(
+                leading: Icon(
+                  Icons.feedback_outlined,
+                  color: AppColors.primary,
+                  size: 28,
+                ),
+                title: const Text(
+                  'Send Feedback',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: const Text(
+                  'Help us improve MediTrack',
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: openFeedback,
+              ),
+            ),
+
+            // Contact Us Card
+            Card(
+              elevation: 2,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ListTile(
+                leading: Icon(
+                  Icons.contact_support,
+                  color: AppColors.primary,
+                  size: 28,
+                ),
+                title: const Text(
+                  'Contact Us',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: const Text(
+                  'Get in touch with our team',
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: _showContactDialog,
               ),
             ),
 

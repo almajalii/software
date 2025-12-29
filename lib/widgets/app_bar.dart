@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:meditrack/screens/main/settings/settings.dart';
+import 'package:meditrack/screens/main/home/notifications_screen.dart';
+import 'package:meditrack/services/notification_service.dart';
 import 'package:meditrack/bloc/theme_bloc/theme_bloc.dart';
 
 class MyAppBar {
@@ -10,6 +12,7 @@ class MyAppBar {
       BuildContext context, VoidCallback onNotificationPressed) {
     final user = FirebaseAuth.instance.currentUser;
     final themeState = context.watch<ThemeBloc>().state;
+    final notificationService = NotificationService();
 
     return AppBar(
       title: SizedBox(
@@ -21,77 +24,79 @@ class MyAppBar {
       leading: IconButton(
         onPressed: () {
           Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => SettingsScreen()),
+            MaterialPageRoute(builder: (context) => const SettingsScreen()),
           );
         },
-        icon: Icon(Icons.settings),
+        icon: const Icon(Icons.settings),
       ),
       actions: [
-        StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(user?.uid)
-              .collection('medicines')
-              .snapshots(),
-          builder: (context, snapshot) {
-            bool hasExpired = false;
-            final now = DateTime.now();
+        // Notification Bell with Count Badge
+        if (user != null)
+          StreamBuilder<int>(
+            stream: notificationService.getUnreadCount(user.uid),
+            builder: (context, snapshot) {
+              final unreadCount = snapshot.data ?? 0;
 
-            if (snapshot.hasData) {
-              for (var doc in snapshot.data!.docs) {
-                final data = doc.data() as Map<String, dynamic>;
-                if (data.containsKey('dateExpired')) {
-                  try {
-                    final expiry = (data['dateExpired'] as Timestamp).toDate();
-                    if (expiry.isBefore(now)) {
-                      hasExpired = true;
-                      break;
-                    }
-                  } catch (_) {
-                    // Ignore invalid timestamps
-                  }
-                }
-              }
-            }
-
-            return Stack(
-              children: [
-                IconButton(
-                  onPressed: onNotificationPressed,
-                  icon: Icon(
-                    hasExpired
-                        ? Icons.notifications_active
-                        : Icons.notifications,
-                    color: hasExpired ? Colors.red : null,
-                  ),
-                ),
-                if (hasExpired)
-                  Positioned(
-                    right: 11,
-                    top: 11,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
+              return Stack(
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      // Navigate to notifications screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationsScreen(),
+                        ),
+                      );
+                    },
+                    icon: Icon(
+                      unreadCount > 0
+                          ? Icons.notifications_active
+                          : Icons.notifications_outlined,
+                      color: unreadCount > 0 ? Colors.white : null,
                     ),
                   ),
-              ],
-            );
-          },
-        ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Center(
+                          child: Text(
+                            unreadCount > 99 ? '99+' : unreadCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
       ],
       flexibleSpace: Container(
         decoration: BoxDecoration(
           gradient: themeState.isDarkMode
-              ? LinearGradient(
-            colors: [Color(0xFF1E1E1E), Color(0xFF2C2C2C)],
-          )
-              : RadialGradient(
-            colors: [Color(0xFF1A3A6B), Color(0xFF00B9E4)],
-          ),
+              ? const LinearGradient(
+                  colors: [Color(0xFF1E1E1E), Color(0xFF2C2C2C)],
+                )
+              : const RadialGradient(
+                  colors: [Color(0xFF1A3A6B), Color(0xFF00B9E4)],
+                ),
         ),
       ),
     );

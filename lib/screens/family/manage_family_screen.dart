@@ -11,6 +11,7 @@ import 'package:meditrack/model/family_member.dart';
 import 'package:meditrack/model/dosage.dart';
 import 'package:meditrack/style/colors.dart';
 import 'package:meditrack/widgets/app_bar.dart';
+import 'package:meditrack/screens/main/home/navigation_main.dart';
 
 class ManageFamilyScreen extends StatefulWidget {
   const ManageFamilyScreen({super.key});
@@ -34,13 +35,34 @@ class _ManageFamilyScreenState extends State<ManageFamilyScreen> {
     context.read<FamilyBloc>().add(LoadPendingInvitationsEvent(familyAccountId));
   }
 
+  // Navigate back to home screen
+  void _navigateToHome() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const NavigationMain()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.white,
-      appBar: MyAppBar.build(context, () {}),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: _navigateToHome,
+        ),
+        title: const Text('Family Account'),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: RadialGradient(
+              colors: [Color(0xFF1A3A6B), Color(0xFF00B9E4)],
+            ),
+          ),
+        ),
+      ),
       body: BlocConsumer<FamilyBloc, FamilyState>(
         listener: (context, state) {
           if (state is FamilyAccountCreatedState) {
@@ -179,35 +201,20 @@ class _ManageFamilyScreenState extends State<ManageFamilyScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          // Members section
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Family Members',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: isDarkMode ? Colors.grey[300] : Colors.black87,
-                ),
-              ),
-              if (isOwner)
-                TextButton.icon(
-                  onPressed: () =>
-                      _showInviteMemberDialog(context, state.familyAccount.id, isDarkMode),
-                  icon: const Icon(Icons.person_add, size: 20),
-                  label: const Text('Invite'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                  ),
-                ),
-            ],
+          // Family Members Section
+          Text(
+            'Family Members',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: isDarkMode ? Colors.grey[300] : Colors.black87,
+            ),
           ),
           const SizedBox(height: 12),
 
-          // Members list with NOTIFY button
+          // Member list
           ...state.members.map((member) {
             final isCurrentUser = member.userId == user?.uid;
             return Card(
@@ -215,25 +222,18 @@ class _ManageFamilyScreenState extends State<ManageFamilyScreen> {
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: member.role == MemberRole.owner
-                      ? AppColors.primary
-                      : (isDarkMode ? Colors.grey[700] : Colors.grey[300]),
+                  backgroundColor: AppColors.primary,
                   child: Text(
                     member.displayName.isNotEmpty
                         ? member.displayName[0].toUpperCase()
-                        : 'U',
-                    style: TextStyle(
-                      color: member.role == MemberRole.owner
-                          ? Colors.white
-                          : (isDarkMode ? Colors.white : Colors.black87),
-                      fontWeight: FontWeight.bold,
-                    ),
+                        : '?',
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
                 title: Row(
                   children: [
                     Text(
-                      member.displayName,
+                      member.displayName.isEmpty ? 'Unknown' : member.displayName,
                       style: TextStyle(
                         color: isDarkMode ? Colors.grey[300] : Colors.black87,
                       ),
@@ -244,12 +244,12 @@ class _ManageFamilyScreenState extends State<ManageFamilyScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                        child: const Text(
+                        child: Text(
                           'You',
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 11,
                             color: AppColors.primary,
                             fontWeight: FontWeight.bold,
                           ),
@@ -262,48 +262,66 @@ class _ManageFamilyScreenState extends State<ManageFamilyScreen> {
                   member.email,
                   style: TextStyle(
                     fontSize: 12,
-                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
                   ),
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // NOTIFY BUTTON (for other members)
-                    if (!isCurrentUser)
-                      IconButton(
-                        icon: const Icon(Icons.notifications_active_outlined),
-                        color: AppColors.primary,
-                        tooltip: 'View medicines',
-                        onPressed: () => _showMemberMedicines(context, member, isDarkMode),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: member.role == MemberRole.owner
+                            ? Colors.amber.withOpacity(0.2)
+                            : Colors.blue.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-
-                    // Owner chip or remove button
-                    if (member.role == MemberRole.owner)
-                      Chip(
-                        label: const Text(
-                          'Owner',
-                          style: TextStyle(fontSize: 11, color: Colors.white),
-                        ),
-                        backgroundColor: AppColors.primary,
-                      )
-                    else if (isOwner && !isCurrentUser)
-                      IconButton(
-                        icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                        onPressed: () => _confirmRemoveMember(
-                          context,
-                          state.familyAccount.id,
-                          member.id,
-                          member.displayName,
+                      child: Text(
+                        member.role == MemberRole.owner ? 'Owner' : 'Member',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: member.role == MemberRole.owner
+                              ? Colors.amber[700]
+                              : Colors.blue[700],
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.medication, size: 20),
+                      color: AppColors.primary,
+                      onPressed: () => _showMemberMedicines(context, member, isDarkMode),
+                    ),
                   ],
                 ),
               ),
             );
-          }),
+          }).toList(),
 
-          // Pending invitations (owner only)
-          if (isOwner && state.pendingInvitations.isNotEmpty) ...[
+          // Invite Member button (owner only)
+          if (isOwner) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _showInviteMemberDialog(
+                  context,
+                  state.familyAccount.id,
+                  isDarkMode,
+                ),
+                icon: const Icon(Icons.person_add, color: Colors.white),
+                label: const Text('Invite Member', style: TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
+
+          // Pending Invitations
+          if (isOwner) ...[
             const SizedBox(height: 24),
             Text(
               'Pending Invitations',
@@ -314,88 +332,88 @@ class _ManageFamilyScreenState extends State<ManageFamilyScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            ...state.pendingInvitations.map((invitation) {
-              return Card(
-                color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  leading: const Icon(Icons.mail_outline, color: Colors.orange),
-                  title: Text(
-                    invitation.invitedEmail,
+            BlocBuilder<FamilyBloc, FamilyState>(
+              builder: (context, familyState) {
+                if (familyState is! FamilyAccountLoadedState) {
+                  return const SizedBox.shrink();
+                }
+
+                final invitations = familyState.pendingInvitations;
+
+                if (invitations.isEmpty) {
+                  return Text(
+                    'No pending invitations',
                     style: TextStyle(
-                      color: isDarkMode ? Colors.grey[300] : Colors.black87,
+                      color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
                     ),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Expires: ${_formatDate(invitation.expiresAt)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  );
+                }
+
+                return Column(
+                  children: invitations.map((invitation) {
+                    return Card(
+                      color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: const Icon(Icons.mail_outline, color: Colors.orange),
+                        title: Text(
+                          invitation.invitedEmail,
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.grey[300] : Colors.black87,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.link, size: 14, color: AppColors.primary),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              invitation.invitationToken,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.primary,
-                                fontFamily: 'monospace',
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                        subtitle: Text(
+                          'Invited ${_formatDate(invitation.createdAt)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                          ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.copy, size: 18),
+                              color: AppColors.primary,
+                              onPressed: () {
+                                Clipboard.setData(
+                                  ClipboardData(text: invitation.invitationToken),
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Invitation code copied!'),
+                                    backgroundColor: Colors.green,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              },
                             ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.copy, size: 16),
-                            color: AppColors.primary,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () {
-                              Clipboard.setData(
-                                ClipboardData(text: invitation.invitationToken),
-                              );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Invitation code copied!'),
-                                  backgroundColor: Colors.green,
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
+                            IconButton(
+                              icon: const Icon(Icons.cancel, color: Colors.red),
+                              onPressed: () {
+                                context.read<FamilyBloc>().add(
+                                  DeleteInvitationEvent(
+                                    familyAccountId: state.familyAccount.id,
+                                    invitationId: invitation.id,
+                                  ),
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Invitation cancelled'),
+                                    backgroundColor: Colors.orange,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.cancel, color: Colors.red),
-                    onPressed: () {
-                      context.read<FamilyBloc>().add(
-                        DeleteInvitationEvent(
-                          familyAccountId: state.familyAccount.id,
-                          invitationId: invitation.id,
-                        ),
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Invitation cancelled'),
-                          backgroundColor: Colors.orange,
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              );
-            }),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
           ],
 
           // Delete Family Account button (owner only)
@@ -423,7 +441,6 @@ class _ManageFamilyScreenState extends State<ManageFamilyScreen> {
 
   // Show member's medicines (READ-ONLY)
   void _showMemberMedicines(BuildContext context, FamilyMember member, bool isDarkMode) {
-    // Prevent multiple taps while loading
     showModalBottomSheet(
       context: context,
       backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
@@ -570,16 +587,21 @@ class _ManageFamilyScreenState extends State<ManageFamilyScreen> {
               ),
               decoration: InputDecoration(
                 labelText: 'Email Address',
+                hintText: 'Enter member\'s email',
                 labelStyle: TextStyle(
                   color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                 ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.grey[100],
               ),
-              keyboardType: TextInputType.emailAddress,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return 'Please enter an email';
                 }
-                if (!value.contains('@')) {
+                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
                   return 'Please enter a valid email';
                 }
                 return null;
@@ -594,7 +616,7 @@ class _ManageFamilyScreenState extends State<ManageFamilyScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (formKey.currentState!.validate() && user != null) {
+              if (formKey.currentState!.validate()) {
                 context.read<FamilyBloc>().add(
                   SendInvitationEvent(
                     familyAccountId: familyAccountId,
@@ -604,49 +626,20 @@ class _ManageFamilyScreenState extends State<ManageFamilyScreen> {
                   ),
                 );
                 Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Invitation sent successfully!'),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
               }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             ),
-            child: const Text('Send Invite', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmRemoveMember(
-      BuildContext context, String familyAccountId, String memberId, String memberName) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Remove Member'),
-        content: Text('Are you sure you want to remove $memberName from the family?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              context.read<FamilyBloc>().add(
-                RemoveFamilyMemberEvent(
-                  familyAccountId: familyAccountId,
-                  memberId: memberId,
-                ),
-              );
-              Navigator.pop(dialogContext);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Member removed successfully'),
-                  backgroundColor: Colors.green,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Remove', style: TextStyle(color: Colors.white)),
+            child: const Text('Invite', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -657,16 +650,21 @@ class _ManageFamilyScreenState extends State<ManageFamilyScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF2C2C2C)
+            : Colors.white,
         title: const Text(
-          'Delete Family Account',
+          'Delete Family Account?',
           style: TextStyle(color: Colors.red),
         ),
-        content: const SingleChildScrollView(
+        content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Are you sure you want to delete this family account?'),
+            children: const [
+              Text(
+                'Are you sure you want to delete this family account?',
+              ),
               SizedBox(height: 12),
               Text(
                 'This will:',
@@ -724,7 +722,7 @@ class _ManageFamilyScreenState extends State<ManageFamilyScreen> {
   }
 }
 
-// Separate widget for the medicines sheet (same as before)
+// Separate widget for the medicines sheet
 class _MemberMedicinesSheet extends StatefulWidget {
   final FamilyMember member;
   final ScrollController scrollController;
@@ -772,11 +770,8 @@ class _MemberMedicinesSheetState extends State<_MemberMedicinesSheet> {
                 child: Text(
                   widget.member.displayName.isNotEmpty
                       ? widget.member.displayName[0].toUpperCase()
-                      : 'U',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                      : '?',
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
                 ),
               ),
               const SizedBox(width: 12),
@@ -789,75 +784,35 @@ class _MemberMedicinesSheetState extends State<_MemberMedicinesSheet> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: widget.isDarkMode ? Colors.grey[200] : Colors.black87,
+                        color: widget.isDarkMode ? Colors.grey[300] : Colors.black87,
                       ),
                     ),
                     Text(
-                      'Today\'s medication schedule',
+                      'Read-only view',
                       style: TextStyle(
                         fontSize: 12,
-                        color: widget.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                        color: widget.isDarkMode ? Colors.grey[500] : Colors.grey[600],
                       ),
                     ),
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
-                color: widget.isDarkMode ? Colors.grey[400] : Colors.grey[600],
-              ),
             ],
           ),
           const SizedBox(height: 16),
-          const Divider(),
+          Divider(color: widget.isDarkMode ? Colors.grey[800] : Colors.grey[300]),
           const SizedBox(height: 8),
 
-          // Medicines list
+          // Medicine list
           Expanded(
             child: BlocBuilder<MedicineBloc, MedicineState>(
-              builder: (context, medState) {
-                if (medState is MedicineLoadingState) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  );
+              builder: (context, state) {
+                if (state is MedicineLoadingState) {
+                  return const Center(child: CircularProgressIndicator());
                 }
 
-                if (medState is MedicineErrorState) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 48,
-                          color: Colors.red.withOpacity(0.5),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Error loading medicines',
-                          style: TextStyle(
-                            color: widget.isDarkMode ? Colors.grey[400] : Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: () {
-                            context.read<MedicineBloc>().add(
-                              LoadMedicinesEvent(widget.member.userId),
-                            );
-                          },
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                if (medState is MedicineLoadedState) {
-                  final medicines = medState.medicines;
-
-                  if (medicines.isEmpty) {
+                if (state is MedicineLoadedState) {
+                  if (state.medicines.isEmpty) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -865,7 +820,7 @@ class _MemberMedicinesSheetState extends State<_MemberMedicinesSheet> {
                           Icon(
                             Icons.medication_outlined,
                             size: 64,
-                            color: widget.isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                            color: widget.isDarkMode ? Colors.grey[700] : Colors.grey[400],
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -879,194 +834,96 @@ class _MemberMedicinesSheetState extends State<_MemberMedicinesSheet> {
                     );
                   }
 
-                  // Load dosages once
-                  if (_isInitialized) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) {
-                        for (var med in medicines) {
-                          context.read<DosageBloc>().add(
-                            LoadDosagesEvent(widget.member.userId, med.id),
-                          );
-                        }
-                      }
-                    });
-                  }
-
-                  return BlocBuilder<DosageBloc, DosageState>(
-                    builder: (context, dosageState) {
-                      if (dosageState is DosageLoadingState) {
-                        return const Center(
-                          child: CircularProgressIndicator(color: AppColors.primary),
-                        );
-                      }
-
-                      if (dosageState is DosageLoadedState) {
-                        final allByMed = dosageState.dosagesByMedicine;
-                        final today = DateTime.now();
-
-                        // Build dosage list
-                        final widgets = <Widget>[];
-                        var hasDosages = false;
-
-                        for (var med in medicines) {
-                          final medDosages = allByMed[med.id] ?? [];
-
-                          final todayDosages = medDosages.where((d) {
-                            final start = d.startDate;
-                            final end = d.endDate;
-                            return !start.isAfter(today) &&
-                                (end == null || !end.isBefore(today));
-                          }).toList();
-
-                          if (todayDosages.isEmpty) continue;
-
-                          hasDosages = true;
-
-                          widgets.add(
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 4, vertical: 8),
-                              child: Text(
-                                med.name.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: widget.isDarkMode
-                                      ? Colors.grey[300]
-                                      : AppColors.darkBlue,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                  return ListView.builder(
+                    controller: widget.scrollController,
+                    itemCount: state.medicines.length,
+                    itemBuilder: (context, index) {
+                      final medicine = state.medicines[index];
+                      return Card(
+                        color: widget.isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          leading: (medicine.imageUrl != null && medicine.imageUrl!.isNotEmpty)
+                              ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              medicine.imageUrl!,
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.medication,
+                                    color: AppColors.primary,
+                                  ),
+                                );
+                              },
                             ),
-                          );
-
-                          for (var dosage in todayDosages) {
-                            widgets.add(_buildReadOnlyDosageCard(dosage, widget.isDarkMode));
-                          }
-                        }
-
-                        if (!hasDosages) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.calendar_today_outlined,
-                                  size: 48,
-                                  color: widget.isDarkMode
-                                      ? Colors.grey[600]
-                                      : Colors.grey[400],
-                                ),
-                                const SizedBox(height: 12),
+                          )
+                              : Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.medication,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          title: Text(
+                            medicine.name,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: widget.isDarkMode ? Colors.grey[300] : Colors.black87,
+                            ),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (medicine.type.isNotEmpty)
                                 Text(
-                                  'No dosages scheduled for today',
+                                  medicine.type,
                                   style: TextStyle(
-                                    color: widget.isDarkMode
-                                        ? Colors.grey[500]
-                                        : Colors.grey[600],
+                                    fontSize: 12,
+                                    color: widget.isDarkMode ? Colors.grey[500] : Colors.grey[600],
                                   ),
                                 ),
-                              ],
-                            ),
-                          );
-                        }
-
-                        return ListView(
-                          controller: widget.scrollController,
-                          children: widgets,
-                        );
-                      }
-
-                      return const SizedBox();
+                              Text(
+                                'Quantity: ${medicine.quantity}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: widget.isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
                     },
                   );
                 }
 
-                return const SizedBox();
+                return Center(
+                  child: Text(
+                    'Unable to load medicines',
+                    style: TextStyle(
+                      color: widget.isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                    ),
+                  ),
+                );
               },
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildReadOnlyDosageCard(Dosage dosage, bool isDarkMode) {
-    final today = DateTime.now();
-
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Dosage: ${dosage.dosage}, Frequency: ${dosage.frequency}',
-              style: TextStyle(
-                fontSize: 13,
-                color: isDarkMode ? Colors.grey[300] : Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...List.generate(dosage.times.length, (index) {
-              final timeData = dosage.times[index];
-              final time = timeData['time'];
-
-              DateTime? takenDate;
-              final raw = timeData['takenDate'];
-              if (raw != null) {
-                takenDate = raw is DateTime ? raw : (raw as Timestamp).toDate();
-              }
-
-              final isTakenToday = takenDate != null &&
-                  takenDate.year == today.year &&
-                  takenDate.month == today.month &&
-                  takenDate.day == today.day;
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Time: $time",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDarkMode ? Colors.grey[400] : Colors.black87,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Icon(
-                          isTakenToday
-                              ? Icons.check_circle
-                              : Icons.radio_button_unchecked,
-                          size: 18,
-                          color: isTakenToday
-                              ? Colors.green
-                              : (isDarkMode ? Colors.grey[600] : Colors.grey),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          isTakenToday ? "Taken" : "Not Taken",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isTakenToday
-                                ? Colors.green
-                                : (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ],
-        ),
       ),
     );
   }
