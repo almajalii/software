@@ -326,41 +326,47 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
                                   Expanded(
                                     child: Text(
                                       expiredMedicines.length == 1
-                                          ? 'medicine has expired'
-                                          : 'medicines have expired',
+                                          ? '1 medicine has expired'
+                                          : '${expiredMedicines.length} medicines have expired',
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
-                                        color: isDarkMode ? Colors.grey.shade300 : Colors.black87,
+                                        color: Colors.red.shade700,
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 16),
-                              ...expiredMedicines.map((medicine) {
-                                final daysExpired = now.difference(medicine.dateExpired).inDays;
+                              const SizedBox(height: 12),
+                              ...expiredMedicines.map((med) {
+                                final daysExpired = now.difference(med.dateExpired).inDays;
                                 return Container(
-                                  margin: const EdgeInsets.only(bottom: 8),
+                                  margin: const EdgeInsets.only(top: 8),
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+                                    color: Colors.white,
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.red.withOpacity(0.3)),
+                                    border: Border.all(
+                                      color: Colors.red.withOpacity(0.2),
+                                    ),
                                   ),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.medication, color: Colors.red.shade600, size: 20),
+                                      Icon(
+                                        Icons.medication,
+                                        color: Colors.red.shade700,
+                                        size: 20,
+                                      ),
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              medicine.name,
+                                              med.name,
                                               style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 15,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
                                                 color: isDarkMode ? Colors.grey.shade300 : Colors.black87,
                                               ),
                                             ),
@@ -488,6 +494,41 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                      )
+                    else
+                    // Mark as Taken button
+                      InkWell(
+                        onTap: () => _markAsTaken(medId, dosage, index),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.primary,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline,
+                                size: 16,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Mark as Taken',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                   ],
                 ),
@@ -497,5 +538,83 @@ class _WelcomeScreenState extends State<WelcomeScreen> with AutomaticKeepAliveCl
         ),
       ),
     );
+  }
+
+  void _markAsTaken(String medId, Dosage dosage, int timeIndex) async {
+    try {
+      // Get the medicine to check current quantity
+      final medState = context.read<MedicineBloc>().state;
+      if (medState is! MedicineLoadedState) return;
+
+      final medicine = medState.medicines.firstWhere((m) => m.id == medId);
+
+      // Check if medicine is in stock
+      if (medicine.quantity <= 0) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${medicine.name} is out of stock!'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Mark the dosage as taken in Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.uid)
+          .collection('medicines')
+          .doc(medId)
+          .collection('dosages')
+          .doc(dosage.id)
+          .update({
+        'times': dosage.times.asMap().entries.map((entry) {
+          if (entry.key == timeIndex) {
+            return {
+              'time': entry.value['time'],
+              'takenDate': Timestamp.now(),
+            };
+          }
+          return entry.value;
+        }).toList(),
+      });
+
+      // Reduce medicine quantity by 1
+      final newQuantity = medicine.quantity - 1;
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.uid)
+          .collection('medicines')
+          .doc(medId)
+          .update({'quantity': newQuantity});
+
+      if (mounted) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${medicine.name} marked as taken! Quantity: $newQuantity'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        // Reload data to reflect changes
+        context.read<MedicineBloc>().add(LoadMedicinesEvent(user!.uid));
+        context.read<DosageBloc>().add(LoadDosagesEvent(user!.uid, medId));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 }
